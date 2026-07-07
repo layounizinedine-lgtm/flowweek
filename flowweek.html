@@ -6,6 +6,7 @@
 <title>FlowWeek – Sprechen. Planen. Besser werden.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
   --bg:#0F1218; --surface:#171C26; --surface2:#1E2432; --line:#262D3B;
@@ -166,13 +167,47 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 details.settings{margin-top:22px}
 details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600}
 @media(min-width:720px){ .days-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px} .daycol{margin-bottom:0} }
+
+/* ---------- Auth ---------- */
+.authmask{position:fixed;inset:0;background:rgba(8,10,14,.88);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.authcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px 22px;max-width:360px;width:100%}
+.authcard .logo{justify-content:center;display:flex;margin-bottom:4px;font-size:24px}
+.authcard .authsub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px}
+.authtabs{display:flex;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:16px}
+.authtabs button{flex:1;padding:8px 0;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted)}
+.authtabs button.on{background:var(--surface);color:var(--text)}
+.authform{display:flex;flex-direction:column;gap:9px}
+.authform .btn{justify-content:center;padding:11px 0;margin-top:4px}
+.autherr{color:var(--red);font-size:12.5px;min-height:16px}
+.guestlink{text-align:center;margin-top:16px;font-size:12.5px;color:var(--muted)}
+.guestlink button{color:var(--blue);font-weight:600;text-decoration:underline}
+.accountbar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.accountbar b{color:var(--text)}
+.accountbar button{color:var(--red);font-weight:600;font-size:12px}
 </style>
 </head>
 <body>
+<div class="authmask" id="authMask" style="display:none">
+  <div class="authcard">
+    <div class="logo"><span class="fw-flow">Flow</span><span class="fw-week">Week</span></div>
+    <div class="authsub">Melde dich an – deine Daten bleiben nur bei dir.</div>
+    <div class="authtabs">
+      <button class="on" id="tabLogin">Anmelden</button>
+      <button id="tabRegister">Registrieren</button>
+    </div>
+    <div class="authform">
+      <input type="email" id="authEmail" placeholder="E-Mail" autocomplete="email">
+      <input type="password" id="authPass" placeholder="Passwort" autocomplete="current-password">
+      <div class="autherr" id="authErr"></div>
+      <button class="btn amber" id="authSubmit">Anmelden</button>
+    </div>
+    <div class="guestlink">oder <button id="authGuest">als Gast fortfahren (nur dieses Gerät)</button></div>
+  </div>
+</div>
 <div class="app">
   <header class="top">
     <div class="logo"><span class="fw-flow">Flow</span><span class="fw-week">Week</span></div>
-    <div class="status-dot" id="aiStatus">KI bereit</div>
+    <div class="accountbar" id="accountBar"><span class="status-dot" id="aiStatus">KI bereit</span></div>
   </header>
 
   <!-- ============ VIEW: DIKTAT ============ -->
@@ -268,13 +303,10 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
   </section>
 
   <details class="settings">
-    <summary>⚙️ Einstellungen (eigener API-Key für lokale Nutzung)</summary>
+    <summary>⚙️ Konto & Einstellungen</summary>
     <div class="card" style="margin-top:8px">
-      <p class="hint" style="margin-bottom:8px">Im Claude-Artifact funktioniert die KI automatisch. Wenn du die Datei lokal öffnest, trage hier deinen Anthropic-API-Key ein (bleibt nur auf deinem Gerät gespeichert).</p>
-      <div style="display:flex;gap:8px">
-        <input id="apiKeyInput" type="password" placeholder="sk-ant-…">
-        <button class="btn" id="apiKeySave" style="flex-shrink:0">Speichern</button>
-      </div>
+      <div id="settingsAccount" class="hint">Du bist als Gast unterwegs – Daten liegen nur auf diesem Gerät.</div>
+      <div class="btnrow" id="settingsActions"></div>
     </div>
   </details>
 </div>
@@ -303,24 +335,61 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
    Läuft im Claude-Artifact UND als lokale Datei im Browser.
    ============================================================ */
 
-/* ---------- Storage-Adapter (Artifact: window.storage / lokal: localStorage) ---------- */
+/* ============================================================
+   KONFIGURATION – hier deine echten Werte eintragen
+   ============================================================ */
+const CONFIG = {
+  // Nach dem Vercel-Deploy des flowweek-backend-Projekts hier die Domain eintragen:
+  BACKEND_URL: "https://flowweek-one.vercel.app/api/chat",
+  // Aus einem bestehenden Supabase-Projekt: Settings -> API
+  SUPABASE_URL: "https://pcdlqtcbpyvjdziqbrfk.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjZGxxdGNicHl2amR6aXFicmZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMTMwNDMsImV4cCI6MjA5ODY4OTA0M30.ffBAnZVUqo8_7i-0Q3VkMpI5NTGM2YcLsHA3MJaxtvM"
+};
+function backendConfigured(){ return CONFIG.BACKEND_URL && !CONFIG.BACKEND_URL.includes("DEIN-"); }
+function supabaseConfigured(){
+  return CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes("DEIN-") &&
+         CONFIG.SUPABASE_ANON_KEY && !CONFIG.SUPABASE_ANON_KEY.includes("DEIN-");
+}
+let sb = null, currentUser = null;
+if(supabaseConfigured() && window.supabase){
+  sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+}
+
+/* ---------- Storage-Adapter: Cloud (Supabase) > Artifact > lokal ---------- */
 const store = {
+  mode: "local", // "cloud" | "artifact" | "local" – wird beim Start/Login gesetzt
   hasArtifactStorage: typeof window.storage !== "undefined" && window.storage && typeof window.storage.get === "function",
   async get(key){
+    if(this.mode === "cloud" && sb && currentUser){
+      try{
+        const { data, error } = await sb.from("flowweek_kv").select("value").eq("user_id", currentUser.id).eq("key", key).maybeSingle();
+        if(error) throw error;
+        return data ? data.value : null;
+      }catch(e){ console.error("Cloud-Get fehlgeschlagen, nutze lokalen Cache:", e); return this._localGet(key); }
+    }
     if(this.hasArtifactStorage){
       try{ const r = await window.storage.get(key); return r ? JSON.parse(r.value) : null; }
       catch(e){ return null; }
     }
-    try{ const v = localStorage.getItem("fw:"+key); return v ? JSON.parse(v) : null; }
-    catch(e){ return null; }
+    return this._localGet(key);
   },
   async set(key,val){
+    if(this.mode === "cloud" && sb && currentUser){
+      try{
+        const { error } = await sb.from("flowweek_kv").upsert({ user_id: currentUser.id, key, value: val, updated_at: new Date().toISOString() });
+        if(error) throw error;
+      }catch(e){ console.error("Cloud-Set fehlgeschlagen:", e); }
+      this._localSet(key, val); // lokaler Cache bleibt immer aktuell (Offline-Fallback)
+      return;
+    }
     if(this.hasArtifactStorage){
       try{ await window.storage.set(key, JSON.stringify(val)); }catch(e){}
       return;
     }
-    try{ localStorage.setItem("fw:"+key, JSON.stringify(val)); }catch(e){}
-  }
+    this._localSet(key, val);
+  },
+  _localGet(key){ try{ const v = localStorage.getItem("fw:"+key); return v ? JSON.parse(v) : null; }catch(e){ return null; } },
+  _localSet(key,val){ try{ localStorage.setItem("fw:"+key, JSON.stringify(val)); }catch(e){} }
 };
 
 /* ---------- Helpers ---------- */
@@ -331,14 +400,10 @@ function toast(msg){
 }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-/* ---------- Claude API ---------- */
-let userApiKey = null;
+/* ---------- KI-Aufrufe über den versteckten Backend-Proxy ---------- */
 async function callClaude(userPrompt, systemPrompt){
-  const headers = {"Content-Type":"application/json"};
-  if(userApiKey){
-    headers["x-api-key"] = userApiKey;
-    headers["anthropic-version"] = "2023-06-01";
-    headers["anthropic-dangerous-direct-browser-access"] = "true";
+  if(!backendConfigured()){
+    throw new Error("Backend-Proxy noch nicht konfiguriert (CONFIG.BACKEND_URL).");
   }
   const body = {
     model: "claude-sonnet-4-6",
@@ -346,12 +411,12 @@ async function callClaude(userPrompt, systemPrompt){
     messages: [{role:"user", content:userPrompt}]
   };
   if(systemPrompt) body.system = systemPrompt;
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST", headers, body: JSON.stringify(body)
+  const res = await fetch(CONFIG.BACKEND_URL, {
+    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)
   });
   if(!res.ok){
     const errText = await res.text().catch(()=> "");
-    throw new Error("API-Fehler ("+res.status+"): " + errText.slice(0,200));
+    throw new Error("Backend-Fehler ("+res.status+"): " + errText.slice(0,200));
   }
   const data = await res.json();
   return (data.content || []).filter(b=>b.type==="text").map(b=>b.text).join("\n").trim();
@@ -799,33 +864,131 @@ function renderAnalysis(a){
 }
 
 /* ============================================================
-   SETTINGS / INIT
+   AUTH
    ============================================================ */
-$("apiKeySave").addEventListener("click", async ()=>{
-  userApiKey = $("apiKeyInput").value.trim() || null;
-  await store.set("apiKey", userApiKey);
-  toast(userApiKey ? "API-Key gespeichert 🔑" : "API-Key entfernt");
-  updateAiStatus();
+let authMode = "login"; // "login" | "register"
+
+function showAuthMask(){ $("authMask").style.display = "flex"; }
+function hideAuthMask(){ $("authMask").style.display = "none"; }
+
+$("tabLogin").addEventListener("click", ()=> setAuthMode("login"));
+$("tabRegister").addEventListener("click", ()=> setAuthMode("register"));
+function setAuthMode(m){
+  authMode = m;
+  $("tabLogin").classList.toggle("on", m==="login");
+  $("tabRegister").classList.toggle("on", m==="register");
+  $("authSubmit").textContent = m==="login" ? "Anmelden" : "Konto erstellen";
+  $("authErr").textContent = "";
+}
+
+$("authSubmit").addEventListener("click", async ()=>{
+  const email = $("authEmail").value.trim();
+  const pass = $("authPass").value;
+  const errEl = $("authErr");
+  errEl.textContent = "";
+  if(!email || !pass){ errEl.textContent = "Bitte E-Mail und Passwort eingeben."; return; }
+  if(!sb){ errEl.textContent = "Konten sind noch nicht eingerichtet (Supabase fehlt in CONFIG)."; return; }
+  const btn = $("authSubmit"); const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "…";
+  try{
+    if(authMode === "login"){
+      const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if(error) throw error;
+      await onLoggedIn(data.user);
+    }else{
+      const { data, error } = await sb.auth.signUp({ email, password: pass });
+      if(error) throw error;
+      if(data.user && !data.session){
+        errEl.style.color = "var(--green)";
+        errEl.textContent = "Konto erstellt! Bitte E-Mail bestätigen und dann anmelden.";
+      }else if(data.user){
+        await onLoggedIn(data.user);
+      }
+    }
+  }catch(e){
+    errEl.style.color = "var(--red)";
+    errEl.textContent = e.message || "Anmeldung fehlgeschlagen.";
+  }finally{
+    btn.disabled = false; btn.textContent = orig;
+  }
 });
+
+$("authGuest").addEventListener("click", async ()=>{
+  currentUser = null; store.mode = "local";
+  hideAuthMask();
+  await loadAllUserData();
+});
+
+async function onLoggedIn(user){
+  currentUser = user;
+  store.mode = "cloud";
+  hideAuthMask();
+  await loadAllUserData();
+  toast("Angemeldet ✅");
+}
+
+async function logout(){
+  if(sb){ try{ await sb.auth.signOut(); }catch(e){} }
+  currentUser = null; store.mode = "local";
+  await loadAllUserData();
+  toast("Abgemeldet");
+}
+
+function renderAccountBar(){
+  const bar = $("settingsAccount");
+  const actions = $("settingsActions");
+  if(currentUser){
+    bar.innerHTML = 'Angemeldet als <b>'+esc(currentUser.email)+'</b>. Deine Daten sind mit deinem Konto verknüpft und plattformübergreifend gespeichert.';
+    actions.innerHTML = '<button class="btn ghost danger" id="logoutBtn">Abmelden</button>';
+    $("logoutBtn").addEventListener("click", logout);
+  }else{
+    bar.innerHTML = 'Du bist als <b>Gast</b> unterwegs – Daten liegen nur auf diesem Gerät.';
+    actions.innerHTML = '<button class="btn amber" id="loginBtn">Anmelden / Konto erstellen</button>';
+    $("loginBtn").addEventListener("click", showAuthMask);
+  }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+async function loadAllUserData(){
+  snippets = (await store.get("snippets")) || [];
+  history = (await store.get("history")) || [];
+  renderSnippets(); renderHistory();
+  await loadWeek();
+  renderAccountBar();
+  updateAiStatus();
+}
 function updateAiStatus(){
-  const inArtifact = location.hostname.includes("claude") || store.hasArtifactStorage;
   const el = $("aiStatus");
-  if(inArtifact || userApiKey){ el.textContent = "KI bereit"; el.classList.remove("offline"); }
-  else{ el.textContent = "KI: Key nötig"; el.classList.add("offline"); }
+  if(backendConfigured()){ el.textContent = "KI bereit"; el.classList.remove("offline"); }
+  else{ el.textContent = "KI: Backend fehlt"; el.classList.add("offline"); }
 }
 
 (async function init(){
-  snippets = (await store.get("snippets")) || [];
-  history = (await store.get("history")) || [];
-  userApiKey = (await store.get("apiKey")) || null;
-  if(userApiKey) $("apiKeyInput").value = userApiKey;
-  renderSnippets(); renderHistory();
-  await loadWeek();
-  updateAiStatus();
   if(!speechSupported()){
     showSpeechWarn("Hinweis: Dieser Browser unterstützt keine Web-Spracherkennung. Am besten in Chrome oder Edge öffnen. Tippen funktioniert trotzdem überall.");
   }
+  if(sb){
+    const { data } = await sb.auth.getSession();
+    if(data && data.session){
+      await onLoggedInSilent(data.session.user);
+    }else{
+      showAuthMask();
+    }
+    sb.auth.onAuthStateChange((event, session)=>{
+      if(event === "SIGNED_OUT"){ currentUser = null; store.mode = "local"; }
+    });
+  }else{
+    // Kein Supabase konfiguriert -> direkt als Gast starten
+    currentUser = null; store.mode = "local";
+    await loadAllUserData();
+  }
 })();
+async function onLoggedInSilent(user){
+  currentUser = user; store.mode = "cloud";
+  await loadAllUserData();
+}
 </script>
 </body>
 </html>
