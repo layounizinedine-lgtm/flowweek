@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FlowWeek – Sprechen. Planen. Besser werden.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0F1218; --surface:#171C26; --surface2:#1E2432; --line:#262D3B;
+  --text:#E8ECF4; --muted:#8A94A6;
+  --amber:#FFB454; --amber-dim:rgba(255,180,84,.14);
+  --blue:#5EA2FF; --blue-dim:rgba(94,162,255,.14);
+  --green:#4ADE80; --red:#F87171;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:radial-gradient(1200px 600px at 80% -10%, rgba(94,162,255,.07), transparent 60%),radial-gradient(900px 500px at -10% 0%, rgba(255,180,84,.06), transparent 55%),var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font-family:inherit;font-size:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none;width:100%}
+input:focus,textarea:focus,select:focus{border-color:var(--blue)}
+::placeholder{color:#5b6577}
+
+/* ---------- Layout ---------- */
+.app{max-width:960px;margin:0 auto;padding:20px 16px 96px}
+header.top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.logo{font-family:'Archivo',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.02em}
+.logo .fw-flow{color:var(--amber)} .logo .fw-week{color:var(--blue)}
+.status-dot{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.status-dot::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
+.status-dot.offline::before{background:var(--muted)}
+
+/* Tabs */
+nav.tabs{position:fixed;bottom:0;left:0;right:0;background:rgba(15,18,24,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;z-index:50}
+nav.tabs button{flex:1;padding:12px 0 max(12px, env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted);transition:color .15s}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.active-amber{color:var(--amber)}
+nav.tabs button.active-blue{color:var(--blue)}
+nav.tabs button.active-green{color:var(--green)}
+.view{display:none} .view.show{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.hint{font-size:12.5px;color:var(--muted)}
+
+/* ---------- Mic Orb (Signature) ---------- */
+.mic-stage{display:flex;flex-direction:column;align-items:center;padding:26px 0 14px;position:relative}
+.orb-wrap{position:relative;width:132px;height:132px;display:flex;align-items:center;justify-content:center}
+.ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--amber);opacity:0;pointer-events:none}
+.listening .ring{animation:pulse 1.8s ease-out infinite}
+.listening .ring:nth-child(2){animation-delay:.6s}
+.listening .ring:nth-child(3){animation-delay:1.2s}
+@keyframes pulse{0%{transform:scale(.85);opacity:.55}100%{transform:scale(1.45);opacity:0}}
+@media (prefers-reduced-motion:reduce){.listening .ring{animation:none;opacity:.3;transform:scale(1.1)}}
+.orb{width:104px;height:104px;border-radius:50%;background:linear-gradient(145deg,#232a38,#12161f);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.orb svg{width:40px;height:40px;color:var(--muted);transition:color .2s}
+.listening .orb{background:linear-gradient(145deg,#3a2c14,#1c1508);border-color:var(--amber);box-shadow:0 0 40px rgba(255,180,84,.25)}
+.listening .orb svg{color:var(--amber)}
+.mic-label{margin-top:12px;font-size:13px;color:var(--muted);font-weight:500}
+.listening + .mic-label, .mic-stage.listening .mic-label{color:var(--amber)}
+.lang-row{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px}
+.lang-row select{width:auto;padding:6px 28px 6px 10px;font-size:13px}
+
+/* Transcript */
+.transcript{min-height:110px;white-space:pre-wrap}
+.interim{color:var(--muted);font-style:italic}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{padding:9px 14px;border-radius:10px;font-weight:600;font-size:13.5px;border:1px solid var(--line);background:var(--surface2);transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:#3a4457}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.amber{background:var(--amber-dim);border-color:rgba(255,180,84,.4);color:var(--amber)}
+.btn.blue{background:var(--blue-dim);border-color:rgba(94,162,255,.4);color:var(--blue)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--red)}
+.spin{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Snippets & history */
+.snip-list,.hist-list{display:flex;flex-direction:column;gap:8px}
+.snip-item,.hist-item{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.snip-item b{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--amber)}
+.hist-item .txt{flex:1;font-size:13.5px;white-space:pre-wrap;word-break:break-word}
+.hist-item time{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.icon-btn{color:var(--muted);padding:4px;border-radius:6px;flex-shrink:0}
+.icon-btn:hover{color:var(--text);background:var(--surface)}
+.icon-btn svg{width:16px;height:16px;display:block}
+
+/* ---------- Planner ---------- */
+.weeknav{display:flex;align-items:center;justify-content:space-between;margin:6px 0 12px}
+.weeknav .wk{font-family:'Archivo',sans-serif;font-weight:700;font-size:16px}
+.weeknav button{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+
+/* Wochen-Übersicht */
+.overview{background:linear-gradient(160deg,var(--surface),#141926);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;margin-bottom:14px}
+.weekstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:12px}
+.ws-day{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .15s;min-width:0}
+.ws-day:active{transform:scale(.96)}
+.ws-day.today{border-color:var(--blue);background:var(--blue-dim)}
+.ws-day .wsd{font-size:10.5px;font-weight:600;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.ws-day.today .wsd{color:var(--blue)}
+.ws-day .wsn{font-family:'Archivo',sans-serif;font-weight:700;font-size:15px}
+.ws-dots{display:flex;gap:2.5px;flex-wrap:wrap;justify-content:center;min-height:6px;max-width:100%}
+.ws-dots i{width:5px;height:5px;border-radius:50%;display:block}
+.ws-free{font-size:9px;color:#525c6e}
+.d-Lernen{background:var(--blue)}.d-Arbeit{background:var(--amber)}.d-Sport{background:var(--green)}.d-Privat{background:#C084FC}
+.progress-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.progress-row .plabel{font-size:12px;color:var(--muted);white-space:nowrap}
+.pbar{flex:1;height:7px;background:var(--surface2);border-radius:99px;overflow:hidden}
+.pbar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),#86efac);border-radius:99px;transition:width .4s ease}
+.pnum{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green)}
+.stackbar{display:flex;height:9px;border-radius:99px;overflow:hidden;background:var(--surface2)}
+.stackbar i{display:block;height:100%}
+.stack-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px;font-size:11.5px;color:var(--muted)}
+.stack-legend span::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* Tageskarten */
+.daycol{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:13px 13px 11px;margin-bottom:10px;scroll-margin-top:12px}
+.daycol.today{border-color:rgba(94,162,255,.55);box-shadow:0 0 0 1px rgba(94,162,255,.18), 0 4px 20px rgba(94,162,255,.06)}
+.dayhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.dayhead .dname{font-family:'Archivo',sans-serif;font-weight:700;font-size:14.5px}
+.dayhead .dname small{color:var(--muted);font-weight:500;font-family:'Inter';margin-left:6px;font-size:12px}
+.dayhead .today-pill{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--blue);background:var(--blue-dim);border:1px solid rgba(94,162,255,.35);padding:2px 8px;border-radius:99px;margin-left:8px;vertical-align:2px}
+.daymeta{display:flex;align-items:center;gap:8px}
+.dcount{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.add-toggle{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);color:var(--muted);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.add-toggle:hover,.add-toggle.open{color:var(--blue);border-color:rgba(94,162,255,.5)}
+.add-toggle.open{transform:rotate(45deg)}
+.task{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:9px;margin-bottom:6px;border-left:3px solid var(--muted)}
+.task .t-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);flex-shrink:0;min-width:42px}
+.task .t-title{flex:1;font-size:14px}
+.task.done{opacity:.65}
+.task.done .t-title{text-decoration:line-through;color:var(--muted)}
+.task.cat-Lernen{border-left-color:var(--blue)}
+.task.cat-Arbeit{border-left-color:var(--amber)}
+.task.cat-Sport{border-left-color:var(--green)}
+.task.cat-Privat{border-left-color:#C084FC}
+.chk{width:19px;height:19px;border-radius:6px;border:1.5px solid var(--muted);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.task.done .chk{background:var(--green);border-color:var(--green);color:#0F1218}
+.chk svg{width:12px;height:12px}
+.empty-day{font-size:12.5px;color:#525c6e;padding:2px 2px 4px}
+.addrow{display:none;grid-template-columns:74px 1fr 100px 40px;gap:6px;margin-top:8px}
+.addrow.open{display:grid;animation:fadeIn .18s ease}
+.addrow input,.addrow select{padding:7px 8px;font-size:13px}
+.addrow .btn{padding:0;justify-content:center}
+.legend{display:none}
+
+/* ---------- Analysis ---------- */
+.score-wrap{display:flex;align-items:center;gap:18px}
+.score-ring{position:relative;width:110px;height:110px;flex-shrink:0}
+.score-ring svg{transform:rotate(-90deg)}
+.score-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Archivo',sans-serif;font-weight:800;font-size:30px}
+.score-num small{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em}
+.ana-block{margin-top:14px}
+.ana-block h3{font-family:'Archivo',sans-serif;font-size:14px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.ana-block ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+.ana-block li{background:var(--surface2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px}
+.ana-block.good h3{color:var(--green)} .ana-block.better h3{color:var(--amber)} .ana-block.learn h3{color:var(--blue)}
+
+.toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--line);padding:10px 18px;border-radius:12px;font-size:13.5px;opacity:0;transition:all .25s;pointer-events:none;z-index:99;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.warn{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.35);border-radius:10px;padding:10px 12px;font-size:13px;color:#fca5a5;margin-bottom:12px}
+details.settings{margin-top:22px}
+details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600}
+@media(min-width:720px){ .days-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px} .daycol{margin-bottom:0} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="logo"><span class="fw-flow">Flow</span><span class="fw-week">Week</span></div>
+    <div class="status-dot" id="aiStatus">KI bereit</div>
+  </header>
+
+  <!-- ============ VIEW: DIKTAT ============ -->
+  <section class="view show" id="view-dictate">
+    <div class="mic-stage" id="micStage">
+      <button class="orb-wrap" id="micBtn" aria-label="Diktat starten oder stoppen">
+        <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+        <span class="orb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a3.5 3.5 0 0 0-3.5 3.5v6a3.5 3.5 0 0 0 7 0v-6A3.5 3.5 0 0 0 12 2z"/><path d="M5 10.5a7 7 0 0 0 14 0M12 17.5V22M8.5 22h7"/></svg>
+        </span>
+      </button>
+      <div class="mic-label" id="micLabel">Tippen zum Sprechen</div>
+      <div class="lang-row">
+        <select id="langSel">
+          <option value="de-DE">Deutsch</option>
+          <option value="ar-SA">العربية</option>
+          <option value="en-US">English</option>
+          <option value="fr-FR">Français</option>
+          <option value="tr-TR">Türkçe</option>
+          <option value="es-ES">Español</option>
+        </select>
+        <label class="hint" style="display:flex;align-items:center;gap:5px">
+          <input type="checkbox" id="autoPolish" checked style="width:auto"> Auto-Politur
+        </label>
+      </div>
+    </div>
+
+    <div id="speechWarn" class="warn" style="display:none"></div>
+
+    <div class="card">
+      <div class="eyebrow">Transkript</div>
+      <div class="transcript" id="transcript" contenteditable="true" data-placeholder="Hier erscheint dein Text …"></div>
+      <div class="btnrow">
+        <button class="btn amber" id="polishBtn">✨ KI-Politur</button>
+        <button class="btn" id="copyBtn">Kopieren</button>
+        <button class="btn ghost danger" id="clearBtn">Leeren</button>
+      </div>
+    </div>
+
+    <h2 class="section" style="color:var(--amber)">Command Mode</h2>
+    <div class="card">
+      <p class="hint" style="margin-bottom:8px">Sag der KI, was sie mit dem Text oben machen soll – per Stimme oder Tastatur. Beispiele: „Mach das formeller“, „Fasse zusammen“, „Übersetze ins Arabische“, „Mach Stichpunkte draus“.</p>
+      <div style="display:flex;gap:8px">
+        <input id="cmdInput" placeholder="Befehl eingeben …">
+        <button class="btn" id="cmdMicBtn" title="Befehl einsprechen" style="flex-shrink:0">🎙️</button>
+      </div>
+      <div class="btnrow">
+        <button class="btn amber" id="cmdRunBtn">Ausführen</button>
+      </div>
+    </div>
+
+    <h2 class="section">Snippets</h2>
+    <div class="card">
+      <p class="hint" style="margin-bottom:8px">Sprich das Kürzel, FlowWeek fügt den Volltext ein. Z. B. „meine mail“ → deine E-Mail-Adresse.</p>
+      <div class="snip-list" id="snipList"></div>
+      <div style="display:grid;grid-template-columns:1fr 2fr 40px;gap:6px;margin-top:10px">
+        <input id="snipKey" placeholder="Kürzel">
+        <input id="snipVal" placeholder="Volltext">
+        <button class="btn blue" id="snipAdd" style="padding:0;justify-content:center">+</button>
+      </div>
+    </div>
+
+    <h2 class="section">Verlauf</h2>
+    <div class="hist-list" id="histList"></div>
+  </section>
+
+  <!-- ============ VIEW: WOCHE ============ -->
+  <section class="view" id="view-week">
+    <div class="weeknav">
+      <button id="wkPrev" aria-label="Vorherige Woche">←</button>
+      <div class="wk" id="wkLabel"></div>
+      <button id="wkNext" aria-label="Nächste Woche">→</button>
+    </div>
+    <div class="overview" id="overview"></div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn blue" id="weekMicBtn" style="flex-shrink:0">🎙️ Woche einsprechen</button>
+        <p class="hint">Sprich frei: „Montag um 9 Mathe lernen, Dienstag 18 Uhr Fitness, Mittwochabend Familie …“ – die KI trägt alles ein.</p>
+      </div>
+      <div class="hint" id="weekMicStatus" style="margin-top:8px;display:none"></div>
+    </div>
+    <div class="days-grid" id="daysGrid"></div>
+  </section>
+
+  <!-- ============ VIEW: ANALYSE ============ -->
+  <section class="view" id="view-analysis">
+    <h2 class="section" style="margin-top:6px;color:var(--green)">KI-Wochenanalyse</h2>
+    <div class="card">
+      <p class="hint" style="margin-bottom:10px">Die KI bewertet deine geplante Woche: Balance, Lern-Effizienz, Pausen, realistische Zeitplanung – und gibt dir konkrete Verbesserungen.</p>
+      <button class="btn blue" id="analyzeBtn">🧠 Woche analysieren</button>
+    </div>
+    <div id="anaResult" style="margin-top:14px"></div>
+  </section>
+
+  <details class="settings">
+    <summary>⚙️ Einstellungen (eigener API-Key für lokale Nutzung)</summary>
+    <div class="card" style="margin-top:8px">
+      <p class="hint" style="margin-bottom:8px">Im Claude-Artifact funktioniert die KI automatisch. Wenn du die Datei lokal öffnest, trage hier deinen Anthropic-API-Key ein (bleibt nur auf deinem Gerät gespeichert).</p>
+      <div style="display:flex;gap:8px">
+        <input id="apiKeyInput" type="password" placeholder="sk-ant-…">
+        <button class="btn" id="apiKeySave" style="flex-shrink:0">Speichern</button>
+      </div>
+    </div>
+  </details>
+</div>
+
+<nav class="tabs">
+  <button data-view="dictate" class="active-amber" id="tab-dictate">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a3.5 3.5 0 0 0-3.5 3.5v6a3.5 3.5 0 0 0 7 0v-6A3.5 3.5 0 0 0 12 2z"/><path d="M5 10.5a7 7 0 0 0 14 0M12 17.5V22"/></svg>
+    Diktat
+  </button>
+  <button data-view="week" id="tab-week">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="17" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
+    Woche
+  </button>
+  <button data-view="analysis" id="tab-analysis">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>
+    Analyse
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   FlowWeek – Diktat (Wispr-Flow-Kern) + Wochenplaner + KI-Analyse
+   Läuft im Claude-Artifact UND als lokale Datei im Browser.
+   ============================================================ */
+
+/* ---------- Storage-Adapter (Artifact: window.storage / lokal: localStorage) ---------- */
+const store = {
+  hasArtifactStorage: typeof window.storage !== "undefined" && window.storage && typeof window.storage.get === "function",
+  async get(key){
+    if(this.hasArtifactStorage){
+      try{ const r = await window.storage.get(key); return r ? JSON.parse(r.value) : null; }
+      catch(e){ return null; }
+    }
+    try{ const v = localStorage.getItem("fw:"+key); return v ? JSON.parse(v) : null; }
+    catch(e){ return null; }
+  },
+  async set(key,val){
+    if(this.hasArtifactStorage){
+      try{ await window.storage.set(key, JSON.stringify(val)); }catch(e){}
+      return;
+    }
+    try{ localStorage.setItem("fw:"+key, JSON.stringify(val)); }catch(e){}
+  }
+};
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- Claude API ---------- */
+let userApiKey = null;
+async function callClaude(userPrompt, systemPrompt){
+  const headers = {"Content-Type":"application/json"};
+  if(userApiKey){
+    headers["x-api-key"] = userApiKey;
+    headers["anthropic-version"] = "2023-06-01";
+    headers["anthropic-dangerous-direct-browser-access"] = "true";
+  }
+  const body = {
+    model: "claude-sonnet-4-6",
+    max_tokens: 1000,
+    messages: [{role:"user", content:userPrompt}]
+  };
+  if(systemPrompt) body.system = systemPrompt;
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST", headers, body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    const errText = await res.text().catch(()=> "");
+    throw new Error("API-Fehler ("+res.status+"): " + errText.slice(0,200));
+  }
+  const data = await res.json();
+  return (data.content || []).filter(b=>b.type==="text").map(b=>b.text).join("\n").trim();
+}
+function parseJsonLoose(text){
+  const clean = text.replace(/```json|```/g,"").trim();
+  const iObj = clean.indexOf("{"), iArr = clean.indexOf("[");
+  const start = (iObj === -1) ? iArr : (iArr === -1) ? iObj : Math.min(iObj, iArr);
+  const end = Math.max(clean.lastIndexOf("}"), clean.lastIndexOf("]"));
+  if(start === -1 || end === -1) throw new Error("Kein JSON gefunden");
+  return JSON.parse(clean.slice(start, end+1));
+}
+async function aiBusy(btn, fn){
+  const orig = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> KI arbeitet …';
+  try{ await fn(); }
+  catch(e){
+    console.error(e);
+    toast("KI nicht erreichbar. Lokal geöffnet? Trage unten deinen API-Key ein.");
+  }
+  finally{ btn.disabled = false; btn.innerHTML = orig; }
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+const tabColor = {dictate:"active-amber", week:"active-blue", analysis:"active-green"};
+document.querySelectorAll("nav.tabs button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("show"));
+    $("view-"+b.dataset.view).classList.add("show");
+    document.querySelectorAll("nav.tabs button").forEach(x=>x.className="");
+    b.className = tabColor[b.dataset.view];
+    window.scrollTo({top:0});
+  });
+});
+
+/* ============================================================
+   DIKTAT – Web Speech API
+   ============================================================ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null, listening = false, finalBuffer = "";
+let snippets = [];
+
+function speechSupported(){ return !!SR; }
+
+function showSpeechWarn(msg){
+  const w = $("speechWarn"); w.style.display = "block"; w.textContent = msg;
+}
+
+function buildRecognizer(){
+  const r = new SR();
+  r.lang = $("langSel").value;
+  r.continuous = true;
+  r.interimResults = true;
+  r.onresult = (ev)=>{
+    let interim = "";
+    for(let i = ev.resultIndex; i < ev.results.length; i++){
+      const res = ev.results[i];
+      if(res.isFinal){
+        finalBuffer += applySnippets(res[0].transcript) + " ";
+      }else{
+        interim += res[0].transcript;
+      }
+    }
+    renderTranscript(interim);
+  };
+  r.onerror = (ev)=>{
+    if(ev.error === "not-allowed" || ev.error === "service-not-allowed"){
+      stopListening();
+      showSpeechWarn("Mikrofon-Zugriff wurde blockiert. Erlaube das Mikrofon in den Browser-Einstellungen. Tipp: Lade die Datei herunter und öffne sie direkt in Chrome – dann klappt es zuverlässig.");
+    }else if(ev.error === "no-speech"){
+      /* still, einfach weiter */
+    }else{
+      console.warn("Speech error:", ev.error);
+    }
+  };
+  r.onend = ()=>{ if(listening){ try{ r.start(); }catch(e){} } };
+  return r;
+}
+
+function renderTranscript(interim){
+  const t = $("transcript");
+  t.innerHTML = esc(finalBuffer) + (interim ? '<span class="interim">'+esc(interim)+'</span>' : "");
+}
+
+function applySnippets(text){
+  let out = text;
+  for(const s of snippets){
+    const rx = new RegExp("\\b"+s.key.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","gi");
+    out = out.replace(rx, s.val);
+  }
+  return out;
+}
+
+async function startListening(){
+  if(!speechSupported()){
+    showSpeechWarn("Dein Browser unterstützt keine Spracherkennung. Nutze Chrome, Edge oder Safari – oder tippe den Text direkt ins Feld.");
+    return;
+  }
+  finalBuffer = $("transcript").innerText.trim();
+  if(finalBuffer) finalBuffer += " ";
+  recog = buildRecognizer();
+  try{ recog.start(); }catch(e){}
+  listening = true;
+  $("micStage").classList.add("listening");
+  $("micLabel").textContent = "Ich höre zu … (tippen zum Stoppen)";
+}
+async function stopListening(){
+  listening = false;
+  if(recog){ try{ recog.stop(); }catch(e){} }
+  $("micStage").classList.remove("listening");
+  $("micLabel").textContent = "Tippen zum Sprechen";
+  renderTranscript("");
+  const text = $("transcript").innerText.trim();
+  if(text && $("autoPolish").checked){
+    aiBusy($("polishBtn"), async ()=>{ await polish(); });
+  }else if(text){
+    saveHistory(text);
+  }
+}
+$("micBtn").addEventListener("click", ()=> listening ? stopListening() : startListening());
+$("langSel").addEventListener("change", ()=>{ if(listening){ stopListening(); } });
+
+/* ---- KI-Politur ---- */
+async function polish(){
+  const raw = $("transcript").innerText.trim();
+  if(!raw){ toast("Kein Text vorhanden."); return; }
+  const sys = "Du bist eine Diktat-Politur-Engine wie Wispr Flow. Du bekommst ein rohes Sprachtranskript. Aufgaben: 1) Füllwörter entfernen (ähm, äh, also, halt, sozusagen, you know …). 2) Korrekte Interpunktion und Groß-/Kleinschreibung. 3) Selbstkorrekturen des Sprechers auflösen: bei 'X, nein warte, Y' oder 'X, ich meine Y' nur Y behalten. 4) Aufzählungen als saubere Liste formatieren, wenn der Sprecher offensichtlich aufzählt. 5) Sprache des Transkripts beibehalten, NICHT übersetzen. 6) Inhalt nicht verändern, nichts hinzufügen. Antworte NUR mit dem polierten Text, ohne Kommentar.";
+  const result = await callClaude(raw, sys);
+  finalBuffer = result;
+  renderTranscript("");
+  saveHistory(result);
+  toast("Text poliert ✨");
+}
+$("polishBtn").addEventListener("click", ()=> aiBusy($("polishBtn"), polish));
+
+/* ---- Command Mode ---- */
+async function runCommand(){
+  const text = $("transcript").innerText.trim();
+  const cmd = $("cmdInput").value.trim();
+  if(!cmd){ toast("Bitte einen Befehl eingeben."); return; }
+  if(!text){ toast("Kein Text im Transkript."); return; }
+  const sys = "Du bist der Command Mode eines Diktat-Tools. Du bekommst einen TEXT und einen BEFEHL des Nutzers. Führe den Befehl auf dem Text aus (umformulieren, zusammenfassen, übersetzen, Stichpunkte, formeller/lockerer machen usw.). Antworte NUR mit dem Ergebnis-Text.";
+  const result = await callClaude("TEXT:\n"+text+"\n\nBEFEHL: "+cmd, sys);
+  finalBuffer = result;
+  renderTranscript("");
+  saveHistory(result);
+  $("cmdInput").value = "";
+  toast("Befehl ausgeführt ✅");
+}
+$("cmdRunBtn").addEventListener("click", ()=> aiBusy($("cmdRunBtn"), runCommand));
+$("cmdInput").addEventListener("keydown", e=>{ if(e.key==="Enter") aiBusy($("cmdRunBtn"), runCommand); });
+
+/* Befehl einsprechen */
+$("cmdMicBtn").addEventListener("click", ()=>{
+  if(!speechSupported()){ toast("Spracherkennung nicht verfügbar."); return; }
+  const r = new SR();
+  r.lang = $("langSel").value; r.interimResults = false; r.continuous = false;
+  $("cmdMicBtn").textContent = "👂";
+  r.onresult = ev => { $("cmdInput").value = ev.results[0][0].transcript; };
+  r.onend = ()=>{ $("cmdMicBtn").textContent = "🎙️"; };
+  r.onerror = ()=>{ $("cmdMicBtn").textContent = "🎙️"; };
+  try{ r.start(); }catch(e){ $("cmdMicBtn").textContent = "🎙️"; }
+});
+
+/* ---- Kopieren / Leeren ---- */
+$("copyBtn").addEventListener("click", async ()=>{
+  const text = $("transcript").innerText.trim();
+  if(!text) return toast("Nichts zu kopieren.");
+  try{ await navigator.clipboard.writeText(text); toast("Kopiert 📋"); }
+  catch(e){
+    const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); ta.remove(); toast("Kopiert 📋");
+  }
+});
+$("clearBtn").addEventListener("click", ()=>{ finalBuffer=""; renderTranscript(""); });
+
+/* ---- Snippets ---- */
+function renderSnippets(){
+  const el = $("snipList");
+  if(!snippets.length){ el.innerHTML = '<div class="hint">Noch keine Snippets.</div>'; return; }
+  el.innerHTML = snippets.map((s,i)=>
+    '<div class="snip-item"><div><b>'+esc(s.key)+'</b> → '+esc(s.val)+'</div>'+
+    '<button class="icon-btn" data-del="'+i+'" aria-label="Löschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'
+  ).join("");
+  el.querySelectorAll("[data-del]").forEach(b=> b.addEventListener("click", async ()=>{
+    snippets.splice(+b.dataset.del,1);
+    await store.set("snippets", snippets);
+    renderSnippets();
+  }));
+}
+$("snipAdd").addEventListener("click", async ()=>{
+  const k = $("snipKey").value.trim(), v = $("snipVal").value.trim();
+  if(!k || !v) return toast("Kürzel und Volltext angeben.");
+  snippets.push({key:k, val:v});
+  await store.set("snippets", snippets);
+  $("snipKey").value=""; $("snipVal").value="";
+  renderSnippets(); toast("Snippet gespeichert");
+});
+
+/* ---- Verlauf ---- */
+let history = [];
+async function saveHistory(text){
+  history.unshift({text, ts: Date.now()});
+  history = history.slice(0, 25);
+  await store.set("history", history);
+  renderHistory();
+}
+function renderHistory(){
+  const el = $("histList");
+  if(!history.length){ el.innerHTML = '<div class="hint" style="padding:0 2px">Deine Diktate erscheinen hier.</div>'; return; }
+  el.innerHTML = history.map((h,i)=>{
+    const d = new Date(h.ts);
+    const time = String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+". "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+    return '<div class="hist-item"><div class="txt"><time>'+time+'</time><br>'+esc(h.text)+'</div>'+
+    '<button class="icon-btn" data-copy="'+i+'" aria-label="Kopieren"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>';
+  }).join("");
+  el.querySelectorAll("[data-copy]").forEach(b=> b.addEventListener("click", async ()=>{
+    try{ await navigator.clipboard.writeText(history[+b.dataset.copy].text); toast("Kopiert 📋"); }catch(e){}
+  }));
+}
+
+/* ============================================================
+   WOCHENPLANER
+   ============================================================ */
+const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
+const DAYNAMES = {mon:"Montag",tue:"Dienstag",wed:"Mittwoch",thu:"Donnerstag",fri:"Freitag",sat:"Samstag",sun:"Sonntag"};
+const CATS = ["Lernen","Arbeit","Sport","Privat"];
+let currentMonday = getMonday(new Date());
+let week = emptyWeek();
+
+function emptyWeek(){ const w={}; DAYS.forEach(d=>w[d]=[]); return w; }
+function getMonday(d){
+  const x = new Date(d); const day = (x.getDay()+6)%7;
+  x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x;
+}
+function weekKey(mon){ return "week:"+mon.toISOString().slice(0,10); }
+function fmtDate(d){ return String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."; }
+
+async function loadWeek(){
+  const w = await store.get(weekKey(currentMonday));
+  week = w || emptyWeek();
+  DAYS.forEach(d=>{ if(!Array.isArray(week[d])) week[d]=[]; });
+  renderWeek();
+}
+async function saveWeek(){ await store.set(weekKey(currentMonday), week); }
+
+const DAYSHORT = {mon:"Mo",tue:"Di",wed:"Mi",thu:"Do",fri:"Fr",sat:"Sa",sun:"So"};
+const CATCOLOR = {Lernen:"var(--blue)",Arbeit:"var(--amber)",Sport:"var(--green)",Privat:"#C084FC"};
+
+function renderOverview(todayMon, todayIdx){
+  const allTasks = DAYS.flatMap(d=>week[d]);
+  const total = allTasks.length, done = allTasks.filter(t=>t.done).length;
+  const pct = total ? Math.round(done/total*100) : 0;
+
+  /* 7-Tage-Leiste */
+  const strip = DAYS.map((d,i)=>{
+    const date = new Date(currentMonday); date.setDate(date.getDate()+i);
+    const dots = week[d].slice(0,8).map(t=>'<i class="d-'+esc(t.cat)+'"></i>').join("");
+    return '<button class="ws-day'+(todayMon && i===todayIdx ? ' today':'')+'" data-jump="'+d+'">'+
+      '<span class="wsd">'+DAYSHORT[d]+'</span>'+
+      '<span class="wsn">'+date.getDate()+'</span>'+
+      (week[d].length ? '<span class="ws-dots">'+dots+'</span>' : '<span class="ws-free">frei</span>')+
+    '</button>';
+  }).join("");
+
+  /* Kategorie-Verteilung */
+  const counts = {}; CATS.forEach(c=>counts[c]=0);
+  allTasks.forEach(t=>{ if(counts[t.cat]!==undefined) counts[t.cat]++; });
+  const stack = total ? CATS.filter(c=>counts[c]).map(c=>
+    '<i style="width:'+(counts[c]/total*100)+'%;background:'+CATCOLOR[c]+'"></i>').join("") : "";
+  const legend = CATS.map(c=>
+    '<span><i style="display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:'+CATCOLOR[c]+'"></i>'+c+' '+counts[c]+'</span>').join("");
+
+  $("overview").innerHTML =
+    '<div class="weekstrip">'+strip+'</div>'+
+    '<div class="progress-row"><span class="plabel">Erledigt</span><div class="pbar"><i style="width:'+pct+'%"></i></div><span class="pnum">'+done+'/'+total+'</span></div>'+
+    (total ? '<div class="stackbar">'+stack+'</div>' : '<div class="hint">Noch nichts geplant – tippe unten auf + oder sprich deine Woche ein.</div>')+
+    '<div class="stack-legend">'+legend+'</div>';
+
+  $("overview").querySelectorAll("[data-jump]").forEach(b=> b.addEventListener("click", ()=>{
+    const el = document.getElementById("day-"+b.dataset.jump);
+    if(el){ el.scrollIntoView({behavior:"smooth", block:"start"}); }
+  }));
+}
+
+function renderWeek(){
+  const end = new Date(currentMonday); end.setDate(end.getDate()+6);
+  $("wkLabel").textContent = "Woche "+fmtDate(currentMonday)+" – "+fmtDate(end)+String(end.getFullYear());
+  const todayMon = getMonday(new Date()).getTime() === currentMonday.getTime();
+  const todayIdx = (new Date().getDay()+6)%7;
+
+  renderOverview(todayMon, todayIdx);
+
+  $("daysGrid").innerHTML = DAYS.map((d,i)=>{
+    const date = new Date(currentMonday); date.setDate(date.getDate()+i);
+    const tasks = [...week[d]].sort((a,b)=>(a.time||"99").localeCompare(b.time||"99"));
+    const doneN = tasks.filter(t=>t.done).length;
+    const taskHtml = tasks.length ? tasks.map(t=>
+      '<div class="task cat-'+esc(t.cat)+(t.done?' done':'')+'" data-day="'+d+'" data-id="'+t.id+'">'+
+      '<button class="chk" aria-label="Erledigt umschalten">'+(t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>':'')+'</button>'+
+      '<span class="t-time">'+esc(t.time||"–")+'</span>'+
+      '<span class="t-title">'+esc(t.title)+'</span>'+
+      '<button class="icon-btn t-del" aria-label="Löschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>'+
+      '</div>'
+    ).join("") : '<div class="empty-day">Nichts geplant.</div>';
+    return '<div class="daycol'+(todayMon && i===todayIdx ? ' today':'')+'" id="day-'+d+'">'+
+      '<div class="dayhead"><div class="dname">'+DAYNAMES[d]+'<small>'+fmtDate(date)+'</small>'+(todayMon && i===todayIdx ? '<span class="today-pill">HEUTE</span>':'')+'</div>'+
+      '<div class="daymeta">'+(tasks.length?'<span class="dcount">'+doneN+'/'+tasks.length+'</span>':'')+
+      '<button class="add-toggle" data-toggle="'+d+'" aria-label="Aufgabe hinzufügen">+</button></div></div>'+
+      taskHtml+
+      '<div class="addrow" id="addrow-'+d+'">'+
+        '<input type="time" data-add-time="'+d+'">'+
+        '<input placeholder="Aufgabe …" data-add-title="'+d+'">'+
+        '<select data-add-cat="'+d+'">'+CATS.map(c=>'<option>'+c+'</option>').join("")+'</select>'+
+        '<button class="btn blue" data-add-btn="'+d+'">+</button>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+
+  /* Events */
+  document.querySelectorAll(".task .chk").forEach(b=> b.addEventListener("click", async ()=>{
+    const el = b.closest(".task"); const t = week[el.dataset.day].find(x=>x.id===el.dataset.id);
+    if(t){ t.done = !t.done; await saveWeek(); renderWeek(); }
+  }));
+  document.querySelectorAll(".task .t-del").forEach(b=> b.addEventListener("click", async ()=>{
+    const el = b.closest(".task");
+    week[el.dataset.day] = week[el.dataset.day].filter(x=>x.id!==el.dataset.id);
+    await saveWeek(); renderWeek();
+  }));
+  document.querySelectorAll("[data-toggle]").forEach(b=> b.addEventListener("click", ()=>{
+    const row = document.getElementById("addrow-"+b.dataset.toggle);
+    const open = row.classList.toggle("open");
+    b.classList.toggle("open", open);
+    if(open){ const inp = row.querySelector("[data-add-title]"); inp && inp.focus(); }
+  }));
+  document.querySelectorAll("[data-add-btn]").forEach(b=> b.addEventListener("click", ()=> addTaskFromRow(b.dataset.addBtn)));
+  document.querySelectorAll("[data-add-title]").forEach(inp=> inp.addEventListener("keydown", e=>{
+    if(e.key==="Enter") addTaskFromRow(inp.dataset.addTitle);
+  }));
+}
+async function addTaskFromRow(day){
+  const title = document.querySelector('[data-add-title="'+day+'"]').value.trim();
+  if(!title) return toast("Aufgabe eingeben.");
+  const time = document.querySelector('[data-add-time="'+day+'"]').value;
+  const cat = document.querySelector('[data-add-cat="'+day+'"]').value;
+  week[day].push({id:"t"+Date.now()+Math.random().toString(36).slice(2,6), time, title, cat, done:false});
+  await saveWeek(); renderWeek();
+  /* Eingabezeile offen lassen für die nächste Aufgabe */
+  const row = document.getElementById("addrow-"+day);
+  const tog = document.querySelector('[data-toggle="'+day+'"]');
+  if(row){ row.classList.add("open"); tog && tog.classList.add("open");
+    const inp = row.querySelector("[data-add-title]"); if(inp) inp.focus(); }
+}
+$("wkPrev").addEventListener("click", ()=>{ currentMonday.setDate(currentMonday.getDate()-7); loadWeek(); });
+$("wkNext").addEventListener("click", ()=>{ currentMonday.setDate(currentMonday.getDate()+7); loadWeek(); });
+
+/* ---- Woche einsprechen (Diktat → KI → Termine) ---- */
+let weekListening = false, weekRecog = null, weekBuffer = "";
+$("weekMicBtn").addEventListener("click", ()=>{
+  if(weekListening){ weekRecog && weekRecog.stop(); return; }
+  if(!speechSupported()){ toast("Spracherkennung nicht verfügbar in diesem Browser."); return; }
+  weekBuffer = "";
+  weekRecog = new SR();
+  weekRecog.lang = "de-DE"; weekRecog.continuous = true; weekRecog.interimResults = true;
+  weekListening = true;
+  $("weekMicBtn").innerHTML = "⏹ Fertig – eintragen";
+  const st = $("weekMicStatus"); st.style.display = "block"; st.textContent = "Ich höre zu …";
+  weekRecog.onresult = ev=>{
+    let interim = "";
+    for(let i=ev.resultIndex;i<ev.results.length;i++){
+      if(ev.results[i].isFinal) weekBuffer += ev.results[i][0].transcript+" ";
+      else interim += ev.results[i][0].transcript;
+    }
+    st.textContent = "„"+(weekBuffer+interim).trim()+"“";
+  };
+  weekRecog.onend = async ()=>{
+    if(!weekListening) return;
+    weekListening = false;
+    $("weekMicBtn").innerHTML = "🎙️ Woche einsprechen";
+    if(!weekBuffer.trim()){ st.style.display="none"; return; }
+    st.textContent = "KI trägt deine Termine ein …";
+    await aiBusy($("weekMicBtn"), async ()=>{
+      await parseWeekSpeech(weekBuffer.trim());
+      st.style.display = "none";
+    });
+  };
+  weekRecog.onerror = ()=>{ weekListening=false; $("weekMicBtn").innerHTML="🎙️ Woche einsprechen"; st.style.display="none"; };
+  try{ weekRecog.start(); }catch(e){}
+});
+async function parseWeekSpeech(text){
+  const sys = 'Du wandelst frei gesprochene Wochenplanung in JSON um. Tage: mon,tue,wed,thu,fri,sat,sun. Kategorien: genau eine aus ["Lernen","Arbeit","Sport","Privat"] (Lernen für Schule/Uni/Vokabeln/Üben, Sport für Fitness/Training, Privat für Familie/Freunde/Erledigungen). "time" im Format "HH:MM" oder "" wenn keine Uhrzeit genannt ("abends"≈"19:00", "morgens"≈"08:00", "mittags"≈"12:00", "nachmittags"≈"15:00"). Antworte NUR mit einem JSON-Array wie: [{"day":"mon","time":"09:00","title":"Mathe lernen","category":"Lernen"}]';
+  const result = await callClaude("Gesprochene Planung: "+text, sys);
+  const tasks = parseJsonLoose(result);
+  if(!Array.isArray(tasks) || !tasks.length) throw new Error("Keine Aufgaben erkannt");
+  let count = 0;
+  for(const t of tasks){
+    if(!DAYS.includes(t.day) || !t.title) continue;
+    week[t.day].push({
+      id:"t"+Date.now()+Math.random().toString(36).slice(2,6),
+      time: (t.time||"").match(/^\d{2}:\d{2}$/) ? t.time : "",
+      title: String(t.title).slice(0,120),
+      cat: CATS.includes(t.category) ? t.category : "Privat",
+      done:false
+    });
+    count++;
+  }
+  await saveWeek(); renderWeek();
+  toast(count+" Termine eingetragen ✅");
+}
+
+/* ============================================================
+   KI-WOCHENANALYSE
+   ============================================================ */
+$("analyzeBtn").addEventListener("click", ()=> aiBusy($("analyzeBtn"), analyzeWeek));
+async function analyzeWeek(){
+  const total = DAYS.reduce((n,d)=>n+week[d].length,0);
+  if(total === 0){ toast("Deine Woche ist noch leer – plane erst etwas."); return; }
+  const weekDesc = DAYS.map(d=>{
+    const tasks = week[d].map(t=>(t.time||"ohne Zeit")+" "+t.title+" ["+t.cat+"]"+(t.done?" (erledigt)":"")).join("; ");
+    return DAYNAMES[d]+": "+(tasks||"nichts geplant");
+  }).join("\n");
+  const sys = 'Du bist ein Produktivitäts- und Lern-Coach. Bewerte den Wochenplan des Nutzers: Balance (Lernen/Arbeit/Sport/Erholung), realistische Zeitplanung, Pausen, Lern-Effizienz (Spaced Repetition, feste Lernblöcke, schwere Aufgaben zu Hochleistungszeiten, Pomodoro), freie Tage. Sei konkret und beziehe dich auf die tatsächlichen Einträge. Antworte NUR als JSON: {"score": 0-100, "fazit": "1-2 Sätze Gesamturteil", "staerken": ["…","…"], "verbesserungen": ["konkreter Vorschlag mit Bezug auf den Plan", "…"], "lerntipps": ["Lern-Tipp bezogen auf die Lerneinträge", "…"]}. Jeweils 2-4 Punkte pro Liste, auf Deutsch, direkt und freundlich (du-Form).';
+  const result = await callClaude("Mein Wochenplan:\n"+weekDesc, sys);
+  const a = parseJsonLoose(result);
+  renderAnalysis(a);
+}
+function renderAnalysis(a){
+  const score = Math.max(0, Math.min(100, +a.score||0));
+  const color = score>=75 ? "var(--green)" : score>=50 ? "var(--amber)" : "var(--red)";
+  const circ = 2*Math.PI*48;
+  const list = (arr)=> (Array.isArray(arr)?arr:[]).map(x=>'<li>'+esc(x)+'</li>').join("");
+  $("anaResult").innerHTML =
+    '<div class="card"><div class="score-wrap">'+
+      '<div class="score-ring"><svg width="110" height="110"><circle cx="55" cy="55" r="48" fill="none" stroke="var(--line)" stroke-width="8"/>'+
+      '<circle cx="55" cy="55" r="48" fill="none" stroke="'+color+'" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+circ+'" stroke-dashoffset="'+(circ*(1-score/100))+'"/></svg>'+
+      '<div class="score-num">'+score+'<small>/ 100</small></div></div>'+
+      '<div><div class="eyebrow">Fazit</div><p style="font-size:14px">'+esc(a.fazit||"")+'</p></div>'+
+    '</div>'+
+    '<div class="ana-block good"><h3>✅ Das läuft gut</h3><ul>'+list(a.staerken)+'</ul></div>'+
+    '<div class="ana-block better"><h3>🔧 So wirst du effizienter</h3><ul>'+list(a.verbesserungen)+'</ul></div>'+
+    (a.lerntipps && a.lerntipps.length ? '<div class="ana-block learn"><h3>📚 Lern-Tipps</h3><ul>'+list(a.lerntipps)+'</ul></div>' : '')+
+    '</div>';
+}
+
+/* ============================================================
+   SETTINGS / INIT
+   ============================================================ */
+$("apiKeySave").addEventListener("click", async ()=>{
+  userApiKey = $("apiKeyInput").value.trim() || null;
+  await store.set("apiKey", userApiKey);
+  toast(userApiKey ? "API-Key gespeichert 🔑" : "API-Key entfernt");
+  updateAiStatus();
+});
+function updateAiStatus(){
+  const inArtifact = location.hostname.includes("claude") || store.hasArtifactStorage;
+  const el = $("aiStatus");
+  if(inArtifact || userApiKey){ el.textContent = "KI bereit"; el.classList.remove("offline"); }
+  else{ el.textContent = "KI: Key nötig"; el.classList.add("offline"); }
+}
+
+(async function init(){
+  snippets = (await store.get("snippets")) || [];
+  history = (await store.get("history")) || [];
+  userApiKey = (await store.get("apiKey")) || null;
+  if(userApiKey) $("apiKeyInput").value = userApiKey;
+  renderSnippets(); renderHistory();
+  await loadWeek();
+  updateAiStatus();
+  if(!speechSupported()){
+    showSpeechWarn("Hinweis: Dieser Browser unterstützt keine Web-Spracherkennung. Am besten in Chrome oder Edge öffnen. Tippen funktioniert trotzdem überall.");
+  }
+})();
+</script>
+</body>
+</html>
