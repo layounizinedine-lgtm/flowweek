@@ -25,13 +25,20 @@ module.exports = async function handler(req, res) {
     res.status(400).json({ error: "Feld 'messages' (Array) fehlt." });
     return;
   }
+  const safeMessages = body.messages
+    .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 12000) }));
+  if (!safeMessages.length) {
+    res.status(400).json({ error: "Keine gültigen Nachrichten gefunden." });
+    return;
+  }
 
   const payload = {
-    model: "claude-sonnet-5", // fest codiert: gültige Modell-ID für die echte Anthropic-API
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest",
     max_tokens: Math.min(Number(body.max_tokens) || 1000, 2000),
-    messages: body.messages
+    messages: safeMessages
   };
-  if (body.system) payload.system = body.system;
+  if (body.system && typeof body.system === "string") payload.system = body.system.slice(0, 8000);
 
   try {
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
@@ -43,10 +50,18 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify(payload)
     });
-    const data = await upstream.json();
-    res.status(upstream.status).json(data);
+    const data = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) {
+      res.status(upstream.status).json({ error: "Anthropic-Fehler", detail: data.error || data });
+      return;
+    }
+    const text = Array.isArray(data.content)
+      ? data.content.filter((b) => b.type === "text").map((b) => b.text || "").join("\n").trim()
+      : "";
+    res.status(200).json({ text, raw: data });
   } catch (err) {
     res.status(502).json({ error: "Anthropic nicht erreichbar", detail: String(err) });
   }
 };
+
 

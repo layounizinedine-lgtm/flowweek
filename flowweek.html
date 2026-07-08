@@ -13,7 +13,7 @@
   --text:#E8ECF4; --muted:#8A94A6;
   --amber:#FFB454; --amber-dim:rgba(255,180,84,.14);
   --blue:#5EA2FF; --blue-dim:rgba(94,162,255,.14);
-  --green:#4ADE80; --red:#F87171;
+  --green:#4ADE80; --red:#F87171; --violet:#A78BFA; --cyan:#22D3EE;
   --radius:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -46,6 +46,8 @@ nav.tabs button.active-green{color:var(--green)}
 h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
 .eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toolbar .btn{white-space:nowrap}
 .hint{font-size:12.5px;color:var(--muted)}
 
 /* ---------- Mic Orb (Signature) ---------- */
@@ -107,7 +109,7 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .ws-dots{display:flex;gap:2.5px;flex-wrap:wrap;justify-content:center;min-height:6px;max-width:100%}
 .ws-dots i{width:5px;height:5px;border-radius:50%;display:block}
 .ws-free{font-size:9px;color:#525c6e}
-.d-Lernen{background:var(--blue)}.d-Arbeit{background:var(--amber)}.d-Sport{background:var(--green)}.d-Privat{background:#C084FC}
+.d-Lernen{background:var(--blue)}.d-Arbeit{background:var(--amber)}.d-Sport{background:var(--green)}.d-Privat{background:#C084FC}.d-Fokus{background:var(--cyan)}.d-Erholung{background:var(--violet)}
 .progress-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .progress-row .plabel{font-size:12px;color:var(--muted);white-space:nowrap}
 .pbar{flex:1;height:7px;background:var(--surface2);border-radius:99px;overflow:hidden}
@@ -117,6 +119,22 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .stackbar i{display:block;height:100%}
 .stack-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px;font-size:11.5px;color:var(--muted)}
 .stack-legend span::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+.command-center{display:grid;grid-template-columns:1.2fr .8fr;gap:10px;margin-bottom:14px}
+.focus-card{background:linear-gradient(160deg,#18202d,#10151f);border:1px solid rgba(94,162,255,.3);border-radius:var(--radius);padding:15px}
+.focus-title{font-family:'Archivo',sans-serif;font-size:22px;font-weight:800;margin:2px 0 6px}
+.focus-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface2);border-radius:999px;padding:5px 9px;font-size:11.5px;color:var(--muted)}
+.pill.hot{color:var(--amber);border-color:rgba(255,180,84,.38);background:var(--amber-dim)}
+.pill.good{color:var(--green);border-color:rgba(74,222,128,.34);background:rgba(74,222,128,.1)}
+.insight-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px}
+.metric b{display:block;font-family:'Archivo',sans-serif;font-size:20px;line-height:1.1}
+.metric span{font-size:11.5px;color:var(--muted)}
+.coach-list{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.coach-item{background:var(--surface2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12.5px;color:var(--muted)}
+.quickbar{display:flex;gap:8px;overflow:auto;margin-bottom:14px;padding-bottom:2px}
+.quickbar .btn{flex-shrink:0}
 
 /* Tageskarten */
 .daycol{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:13px 13px 11px;margin-bottom:10px;scroll-margin-top:12px}
@@ -139,11 +157,21 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .task.cat-Arbeit{border-left-color:var(--amber)}
 .task.cat-Sport{border-left-color:var(--green)}
 .task.cat-Privat{border-left-color:#C084FC}
+.task.cat-Fokus{border-left-color:var(--cyan)}
+.task.cat-Erholung{border-left-color:var(--violet)}
+.task.prio-high{box-shadow:inset 0 0 0 1px rgba(248,113,113,.18)}
+.task .t-main{flex:1;min-width:0}
+.task .t-title{display:block}
+.task .t-notes{display:block;margin-top:2px;font-size:11.5px;color:var(--muted)}
+.task .t-tags{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.tag{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 6px}
+.tag.prio-high{color:var(--red);border-color:rgba(248,113,113,.38);background:rgba(248,113,113,.1)}
+.tag.prio-medium{color:var(--amber);border-color:rgba(255,180,84,.34);background:var(--amber-dim)}
 .chk{width:19px;height:19px;border-radius:6px;border:1.5px solid var(--muted);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .task.done .chk{background:var(--green);border-color:var(--green);color:#0F1218}
 .chk svg{width:12px;height:12px}
 .empty-day{font-size:12.5px;color:#525c6e;padding:2px 2px 4px}
-.addrow{display:none;grid-template-columns:74px 1fr 100px 40px;gap:6px;margin-top:8px}
+.addrow{display:none;grid-template-columns:74px 1fr 96px 86px 84px 40px;gap:6px;margin-top:8px}
 .addrow.open{display:grid;animation:fadeIn .18s ease}
 .addrow input,.addrow select{padding:7px 8px;font-size:13px}
 .addrow .btn{padding:0;justify-content:center}
@@ -171,8 +199,11 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
   header.top{align-items:flex-start;gap:10px}
   .accountbar{justify-content:flex-end;text-align:right}
   .weekstrip{gap:4px}
+  .command-center{grid-template-columns:1fr}
+  .insight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .addrow.open{grid-template-columns:1fr 1fr 40px}
   .addrow [data-add-title]{grid-column:1 / -1}
+  .addrow [data-add-cat],.addrow [data-add-prio],.addrow [data-add-duration]{grid-column:auto}
   .score-wrap{align-items:flex-start;flex-direction:column}
 }
 
@@ -289,7 +320,14 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
       <div class="wk" id="wkLabel"></div>
       <button id="wkNext" aria-label="Nächste Woche">→</button>
     </div>
+    <div class="command-center" id="commandCenter"></div>
     <div class="overview" id="overview"></div>
+    <div class="quickbar">
+      <button class="btn blue" data-template="deep">Fokusblock</button>
+      <button class="btn amber" data-template="reset">Wochenreset</button>
+      <button class="btn" data-template="sport">Training</button>
+      <button class="btn" data-template="review">Tagesabschluss</button>
+    </div>
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:12px">
         <button class="btn blue" id="weekMicBtn" style="flex-shrink:0">🎙️ Woche einsprechen</button>
@@ -669,7 +707,8 @@ function renderHistory(){
    ============================================================ */
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const DAYNAMES = {mon:"Montag",tue:"Dienstag",wed:"Mittwoch",thu:"Donnerstag",fri:"Freitag",sat:"Samstag",sun:"Sonntag"};
-const CATS = ["Lernen","Arbeit","Sport","Privat"];
+const CATS = ["Fokus","Lernen","Arbeit","Sport","Privat","Erholung"];
+const PRIOS = ["normal","high","medium","low"];
 let currentMonday = getMonday(new Date());
 let week = emptyWeek();
 
@@ -690,7 +729,85 @@ async function loadWeek(){
 async function saveWeek(){ await store.set(weekKey(currentMonday), week); }
 
 const DAYSHORT = {mon:"Mo",tue:"Di",wed:"Mi",thu:"Do",fri:"Fr",sat:"Sa",sun:"So"};
-const CATCOLOR = {Lernen:"var(--blue)",Arbeit:"var(--amber)",Sport:"var(--green)",Privat:"#C084FC"};
+const CATCOLOR = {Fokus:"var(--cyan)",Lernen:"var(--blue)",Arbeit:"var(--amber)",Sport:"var(--green)",Privat:"#C084FC",Erholung:"var(--violet)"};
+const PRIO_LABEL = {high:"Wichtig", medium:"Sollte", normal:"Normal", low:"Optional"};
+
+function normalizeTask(t){
+  return {
+    id: t.id || ("t"+Date.now()+Math.random().toString(36).slice(2,6)),
+    time: typeof t.time === "string" ? t.time : "",
+    title: String(t.title || "Aufgabe").slice(0,120),
+    cat: CATS.includes(t.cat || t.category) ? (t.cat || t.category) : "Privat",
+    done: !!t.done,
+    priority: PRIOS.includes(t.priority) ? t.priority : "normal",
+    duration: Number(t.duration) > 0 ? Math.min(480, Number(t.duration)) : 30,
+    notes: t.notes ? String(t.notes).slice(0,140) : ""
+  };
+}
+function allWeekTasks(){ return DAYS.flatMap(day=>week[day].map(t=>({day, ...normalizeTask(t)}))); }
+function minutesOf(time){
+  const m = String(time||"").match(/^(\d{2}):(\d{2})$/);
+  return m ? (+m[1])*60 + (+m[2]) : null;
+}
+function dayLoad(day){
+  return week[day].reduce((sum,t)=>sum+(Number(t.duration)||30),0);
+}
+function formatHours(minutes){
+  const h = minutes / 60;
+  return Number.isInteger(h) ? h+"h" : h.toFixed(1).replace(".", ",")+"h";
+}
+function getWeekInsights(){
+  const all = allWeekTasks();
+  const total = all.length;
+  const done = all.filter(t=>t.done).length;
+  const focus = all.filter(t=>!t.done && (t.priority==="high" || t.cat==="Fokus")).sort((a,b)=>{
+    const p = (b.priority==="high") - (a.priority==="high");
+    return p || (minutesOf(a.time) ?? 9999) - (minutesOf(b.time) ?? 9999);
+  });
+  const todayIdx = (new Date().getDay()+6)%7;
+  const todayDay = DAYS[todayIdx];
+  const todayTasks = getMonday(new Date()).getTime() === currentMonday.getTime() ? week[todayDay].map(t=>normalizeTask(t)) : [];
+  const overloaded = DAYS.filter(d=>dayLoad(d) > 420);
+  const noRecovery = all.length && !all.some(t=>t.cat==="Erholung");
+  const conflicts = [];
+  DAYS.forEach(d=>{
+    const byTime = week[d].map(normalizeTask).filter(t=>t.time);
+    byTime.forEach((t,i)=>{
+      const start = minutesOf(t.time), end = start + (Number(t.duration)||30);
+      byTime.slice(i+1).forEach(other=>{
+        const os = minutesOf(other.time), oe = os + (Number(other.duration)||30);
+        if(start !== null && os !== null && start < oe && os < end) conflicts.push({day:d, first:t, second:other});
+      });
+    });
+  });
+  return {all,total,done,focus,todayTasks,overloaded,noRecovery,conflicts};
+}
+
+function renderCommandCenter(){
+  const i = getWeekInsights();
+  const pct = i.total ? Math.round(i.done/i.total*100) : 0;
+  const next = i.focus[0];
+  const todayOpen = i.todayTasks.filter(t=>!t.done).length;
+  const coach = [];
+  if(next) coach.push("Nächster Hebel: "+next.title+" zuerst abschließen.");
+  if(i.conflicts.length) coach.push(i.conflicts.length+" Zeitkonflikt(e) prüfen, bevor die Woche kippt.");
+  if(i.overloaded.length) coach.push("Zu volle Tage: "+i.overloaded.map(d=>DAYSHORT[d]).join(", ")+". Puffer einplanen.");
+  if(i.noRecovery) coach.push("Mindestens einen Erholungsblock setzen, sonst wird der Plan fragil.");
+  if(!coach.length) coach.push("Die Woche wirkt stabil. Jetzt konsequent abhaken und abends kurz nachsteuern.");
+  $("commandCenter").innerHTML =
+    '<div class="focus-card">'+
+      '<div class="eyebrow">Heute im Fokus</div>'+
+      '<div class="focus-title">'+esc(next ? next.title : "Woche aufsetzen")+'</div>'+
+      '<p class="hint">'+esc(next ? (DAYNAMES[next.day]+" "+(next.time || "ohne Uhrzeit")+" - "+next.cat) : "Lege einen Fokusblock oder Wochenreset an, um sofort Struktur zu schaffen.")+'</p>'+
+      '<div class="focus-meta"><span class="pill hot">'+i.focus.length+' Fokus offen</span><span class="pill good">'+pct+'% erledigt</span><span class="pill">'+todayOpen+' heute offen</span></div>'+
+    '</div>'+
+    '<div><div class="insight-grid">'+
+      '<div class="metric"><b>'+i.total+'</b><span>Aufgaben</span></div>'+
+      '<div class="metric"><b>'+formatHours(DAYS.reduce((s,d)=>s+dayLoad(d),0))+'</b><span>Zeit geplant</span></div>'+
+      '<div class="metric"><b>'+i.conflicts.length+'</b><span>Konflikte</span></div>'+
+      '<div class="metric"><b>'+i.overloaded.length+'</b><span>volle Tage</span></div>'+
+    '</div><div class="coach-list">'+coach.slice(0,3).map(x=>'<div class="coach-item">'+esc(x)+'</div>').join("")+'</div></div>';
+}
 
 function renderOverview(todayMon, todayIdx){
   const allTasks = DAYS.flatMap(d=>week[d]);
@@ -734,6 +851,8 @@ function renderWeek(){
   const todayMon = getMonday(new Date()).getTime() === currentMonday.getTime();
   const todayIdx = (new Date().getDay()+6)%7;
 
+  DAYS.forEach(d=>{ week[d] = week[d].map(normalizeTask); });
+  renderCommandCenter();
   renderOverview(todayMon, todayIdx);
 
   $("daysGrid").innerHTML = DAYS.map((d,i)=>{
@@ -741,10 +860,11 @@ function renderWeek(){
     const tasks = [...week[d]].sort((a,b)=>(a.time||"99").localeCompare(b.time||"99"));
     const doneN = tasks.filter(t=>t.done).length;
     const taskHtml = tasks.length ? tasks.map(t=>
-      '<div class="task cat-'+esc(t.cat)+(t.done?' done':'')+'" data-day="'+d+'" data-id="'+t.id+'">'+
+      '<div class="task cat-'+esc(t.cat)+(t.done?' done':'')+(t.priority==="high"?' prio-high':'')+'" data-day="'+d+'" data-id="'+t.id+'">'+
       '<button class="chk" aria-label="Erledigt umschalten">'+(t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>':'')+'</button>'+
       '<span class="t-time">'+esc(t.time||"–")+'</span>'+
-      '<span class="t-title">'+esc(t.title)+'</span>'+
+      '<span class="t-main"><span class="t-title">'+esc(t.title)+'</span>'+(t.notes?'<span class="t-notes">'+esc(t.notes)+'</span>':'')+'</span>'+
+      '<span class="t-tags">'+(t.priority!=="normal"?'<span class="tag prio-'+esc(t.priority)+'">'+PRIO_LABEL[t.priority]+'</span>':'')+'<span class="tag">'+(t.duration||30)+'m</span></span>'+
       '<button class="icon-btn t-del" aria-label="Löschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>'+
       '</div>'
     ).join("") : '<div class="empty-day">Nichts geplant.</div>';
@@ -757,6 +877,8 @@ function renderWeek(){
         '<input type="time" data-add-time="'+d+'">'+
         '<input placeholder="Aufgabe …" data-add-title="'+d+'">'+
         '<select data-add-cat="'+d+'">'+CATS.map(c=>'<option>'+c+'</option>').join("")+'</select>'+
+        '<select data-add-prio="'+d+'"><option value="normal">Normal</option><option value="high">Wichtig</option><option value="medium">Sollte</option><option value="low">Optional</option></select>'+
+        '<select data-add-duration="'+d+'"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option><option value="90">90 min</option><option value="120">2 h</option></select>'+
         '<button class="btn blue" data-add-btn="'+d+'">+</button>'+
       '</div>'+
     '</div>';
@@ -787,11 +909,13 @@ async function addTaskFromRow(day){
   const titleInput = document.querySelector('[data-add-title="'+day+'"]');
   const timeInput = document.querySelector('[data-add-time="'+day+'"]');
   const catInput = document.querySelector('[data-add-cat="'+day+'"]');
+  const prioInput = document.querySelector('[data-add-prio="'+day+'"]');
+  const durInput = document.querySelector('[data-add-duration="'+day+'"]');
   const title = titleInput.value.trim();
   if(!title) return toast("Aufgabe eingeben.");
   const time = timeInput.value;
   const cat = catInput.value;
-  week[day].push({id:"t"+Date.now()+Math.random().toString(36).slice(2,6), time, title, cat, done:false});
+  week[day].push(normalizeTask({id:"t"+Date.now()+Math.random().toString(36).slice(2,6), time, title, cat, priority: prioInput.value, duration: durInput.value, done:false}));
   await saveWeek(); renderWeek();
   /* Eingabezeile offen lassen für die nächste Aufgabe */
   const row = document.getElementById("addrow-"+day);
@@ -805,6 +929,20 @@ async function addTaskFromRow(day){
 }
 $("wkPrev").addEventListener("click", ()=>{ currentMonday.setDate(currentMonday.getDate()-7); loadWeek(); });
 $("wkNext").addEventListener("click", ()=>{ currentMonday.setDate(currentMonday.getDate()+7); loadWeek(); });
+document.querySelectorAll("[data-template]").forEach(b=> b.addEventListener("click", ()=> addTemplate(b.dataset.template)));
+
+async function addTemplate(kind){
+  const todayIdx = getMonday(new Date()).getTime() === currentMonday.getTime() ? (new Date().getDay()+6)%7 : 0;
+  const day = DAYS[todayIdx];
+  const templates = {
+    deep: {time:"09:00", title:"90 Minuten Fokusarbeit", cat:"Fokus", priority:"high", duration:90, notes:"Handy weg, ein klares Ergebnis."},
+    reset: {time:"18:00", title:"Wochenreset und Planung", cat:"Privat", priority:"high", duration:45, notes:"Kalender prüfen, Top 3 setzen, Puffer sichern."},
+    sport: {time:"18:30", title:"Training / Bewegung", cat:"Sport", priority:"medium", duration:60, notes:"Energie stabilisieren."},
+    review: {time:"20:30", title:"Tagesabschluss", cat:"Erholung", priority:"medium", duration:20, notes:"Abhaken, verschieben, morgen vorbereiten."}
+  };
+  week[day].push(normalizeTask(templates[kind] || templates.deep));
+  await saveWeek(); renderWeek(); toast("Vorlage hinzugefügt");
+}
 
 /* ---- Woche einsprechen (Diktat → KI → Termine) ---- */
 let weekListening = false, weekRecog = null, weekBuffer = "";
@@ -840,7 +978,7 @@ $("weekMicBtn").addEventListener("click", ()=>{
   try{ weekRecog.start(); }catch(e){}
 });
 async function parseWeekSpeech(text){
-  const sys = 'Du wandelst frei gesprochene Wochenplanung in JSON um. Tage: mon,tue,wed,thu,fri,sat,sun. Kategorien: genau eine aus ["Lernen","Arbeit","Sport","Privat"] (Lernen für Schule/Uni/Vokabeln/Üben, Sport für Fitness/Training, Privat für Familie/Freunde/Erledigungen). "time" im Format "HH:MM" oder "" wenn keine Uhrzeit genannt ("abends"≈"19:00", "morgens"≈"08:00", "mittags"≈"12:00", "nachmittags"≈"15:00"). Antworte NUR mit einem JSON-Array wie: [{"day":"mon","time":"09:00","title":"Mathe lernen","category":"Lernen"}]';
+  const sys = 'Du wandelst frei gesprochene Wochenplanung in JSON um. Tage: mon,tue,wed,thu,fri,sat,sun. Kategorien: genau eine aus ["Fokus","Lernen","Arbeit","Sport","Privat","Erholung"] (Fokus für Deep Work/Top-Prioritäten, Lernen für Schule/Uni/Vokabeln/Üben, Sport für Fitness/Training, Erholung für Pausen/Schlaf/Regeneration, Privat für Familie/Freunde/Erledigungen). "time" im Format "HH:MM" oder "" wenn keine Uhrzeit genannt ("abends"≈"19:00", "morgens"≈"08:00", "mittags"≈"12:00", "nachmittags"≈"15:00"). "priority" ist "high", "medium", "normal" oder "low". "duration" ist Minuten, realistisch schätzen. Antworte NUR mit einem JSON-Array wie: [{"day":"mon","time":"09:00","title":"Mathe lernen","category":"Lernen","priority":"high","duration":60}]';
   let tasks;
   try{
     const result = await callClaude("Gesprochene Planung: "+text, sys);
@@ -854,13 +992,15 @@ async function parseWeekSpeech(text){
   let count = 0;
   for(const t of tasks){
     if(!DAYS.includes(t.day) || !t.title) continue;
-    week[t.day].push({
+    week[t.day].push(normalizeTask({
       id:"t"+Date.now()+Math.random().toString(36).slice(2,6),
       time: (t.time||"").match(/^\d{2}:\d{2}$/) ? t.time : "",
       title: String(t.title).slice(0,120),
       cat: CATS.includes(t.category) ? t.category : "Privat",
+      priority: PRIOS.includes(t.priority) ? t.priority : "normal",
+      duration: Number(t.duration) || 30,
       done:false
-    });
+    }));
     count++;
   }
   await saveWeek(); renderWeek();
@@ -884,7 +1024,7 @@ function parseWeekSpeechLocal(text){
     let part = normalized.slice(hit.index + hit.label.length, next).trim();
     const time = extractTime(part);
     part = part.replace(/\b(um|gegen|ca\.?)\b/gi, "").replace(/\b\d{1,2}([:.]\d{2})?\s*(uhr)?\b/i, "").trim();
-    return {day: hit.day, time, title: part || "Aufgabe", category: inferCategory(part)};
+    return {day: hit.day, time, title: part || "Aufgabe", category: inferCategory(part), priority: inferPriority(part), duration: inferDuration(part)};
   }).filter(t=>t.title);
 }
 function extractTime(text){
@@ -899,10 +1039,24 @@ function extractTime(text){
   return String(h).padStart(2,"0")+":"+String(min).padStart(2,"0");
 }
 function inferCategory(text){
+  if(/\b(fokus|deep work|konzentriert|wichtigste|top\s*3|projektarbeit)\b/i.test(text)) return "Fokus";
   if(/\b(lernen|schule|uni|mathe|deutsch|englisch|vokabel|prüfung|klausur|hausaufgabe|lesen)\b/i.test(text)) return "Lernen";
   if(/\b(job|arbeit|meeting|kunde|projekt|büro|call)\b/i.test(text)) return "Arbeit";
   if(/\b(sport|fitness|training|laufen|gym|fußball|schwimmen)\b/i.test(text)) return "Sport";
+  if(/\b(pause|erholung|schlaf|ruhe|spaziergang|regeneration|abschalten|frei)\b/i.test(text)) return "Erholung";
   return "Privat";
+}
+function inferPriority(text){
+  if(/\b(wichtig|dringend|top|muss|deadline|prüfung|klausur)\b/i.test(text)) return "high";
+  if(/\b(sollte|besser|priorität|prio)\b/i.test(text)) return "medium";
+  if(/\b(optional|vielleicht|wenn zeit)\b/i.test(text)) return "low";
+  return "normal";
+}
+function inferDuration(text){
+  const m = text.match(/\b(\d{1,3})\s*(min|minute|minuten|h|std|stunde|stunden)\b/i);
+  if(!m) return /\b(fokus|deep work|lernen|training)\b/i.test(text) ? 60 : 30;
+  const n = Math.max(5, parseInt(m[1],10));
+  return /^h|^std|^stunde/i.test(m[2]) ? Math.min(480, n*60) : Math.min(480, n);
 }
 
 /* ============================================================
@@ -929,16 +1083,23 @@ async function analyzeWeek(){
   renderAnalysis(a);
 }
 function analyzeWeekLocal(){
-  const allTasks = DAYS.flatMap(d=>week[d].map(t=>({day:d, ...t})));
+  const allTasks = allWeekTasks();
   const total = allTasks.length;
   const done = allTasks.filter(t=>t.done).length;
   const counts = {}; CATS.forEach(c=>counts[c]=allTasks.filter(t=>t.cat===c).length);
   const plannedDays = DAYS.filter(d=>week[d].length).length;
-  let score = 45 + Math.min(20, plannedDays*3) + (counts.Sport ? 10 : 0) + (counts.Lernen ? 10 : 0) + Math.round((done/Math.max(1,total))*15);
+  const insights = getWeekInsights();
+  let score = 45 + Math.min(20, plannedDays*3) + (counts.Sport ? 8 : 0) + (counts.Lernen ? 8 : 0) + (counts.Fokus ? 8 : 0) + (counts.Erholung ? 8 : 0) + Math.round((done/Math.max(1,total))*15);
   if(total > 22) score -= 10;
+  score -= insights.conflicts.length * 6;
+  score -= insights.overloaded.length * 4;
   score = Math.max(20, Math.min(88, score));
   const improvements = [];
+  if(insights.conflicts.length) improvements.push("Löse die Zeitkonflikte, bevor du die Woche startest. Überlappende Aufgaben wirken klein, kosten aber Fokus.");
+  if(insights.overloaded.length) improvements.push("Kürze überladene Tage oder verschiebe Aufgaben. Mehr als 7 Stunden geplante Aufgaben pro Tag ist riskant.");
+  if(!counts.Fokus) improvements.push("Setze mindestens einen Fokusblock für die wichtigste Sache der Woche.");
   if(!counts.Sport) improvements.push("Plane mindestens einen festen Sport- oder Bewegungsblock ein, damit die Woche nicht nur aus Aufgaben besteht.");
+  if(!counts.Erholung) improvements.push("Baue Erholung aktiv ein. Ohne Pause wird Planung schnell zu Druck.");
   if(!counts.Lernen) improvements.push("Lege einen kleinen Lernblock an, wenn du Fortschritt bei Schule, Uni oder Skills sichtbar machen willst.");
   if(total > 18) improvements.push("Die Woche wirkt voll. Markiere 2-3 Aufgaben als optional oder verschiebe sie, bevor es stressig wird.");
   if(plannedDays < 5) improvements.push("Verteile wichtige Aufgaben auf mehr Tage, damit einzelne Tage nicht zu schwer werden.");
@@ -1104,3 +1265,4 @@ async function onLoggedInSilent(user){
 </script>
 </body>
 </html>
+
