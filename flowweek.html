@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://flowweek-one.vercel.app https://pcdlqtcbpyvjdziqbrfk.supabase.co wss://pcdlqtcbpyvjdziqbrfk.supabase.co;">
 <title>FlowWeek – Sprechen. Planen. Besser werden.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -269,7 +271,7 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
           <option value="es-ES">Español</option>
         </select>
         <label class="hint" style="display:flex;align-items:center;gap:5px">
-          <input type="checkbox" id="autoPolish" checked style="width:auto"> Auto-Politur
+          <input type="checkbox" id="autoPolish" style="width:auto"> Auto-Politur
         </label>
       </div>
     </div>
@@ -392,6 +394,17 @@ const CONFIG = {
   SUPABASE_URL: "https://pcdlqtcbpyvjdziqbrfk.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjZGxxdGNicHl2amR6aXFicmZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMTMwNDMsImV4cCI6MjA5ODY4OTA0M30.ffBAnZVUqo8_7i-0Q3VkMpI5NTGM2YcLsHA3MJaxtvM"
 };
+const LIMITS = {
+  TEXT: 12000,
+  COMMAND: 1000,
+  HISTORY_TEXT: 8000,
+  HISTORY_ITEMS: 25,
+  SNIPPETS: 50,
+  SNIPPET_KEY: 60,
+  SNIPPET_VALUE: 500,
+  TASK_TITLE: 120,
+  TASK_NOTES: 140
+};
 function backendConfigured(){ return CONFIG.BACKEND_URL && !CONFIG.BACKEND_URL.includes("DEIN-"); }
 function supabaseConfigured(){
   return CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes("DEIN-") &&
@@ -446,6 +459,13 @@ function toast(msg){
   clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("show"), 2600);
 }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function cleanText(s, max = LIMITS.TEXT){
+  return String(s || "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").slice(0, max);
+}
+function setTranscriptText(text){
+  finalBuffer = cleanText(text);
+  renderTranscript("");
+}
 
 /* ---------- KI-Aufrufe über den versteckten Backend-Proxy ---------- */
 async function callClaude(userPrompt, systemPrompt){
@@ -456,9 +476,9 @@ async function callClaude(userPrompt, systemPrompt){
   const timeout = setTimeout(()=>controller.abort(), 25000);
   const body = {
     max_tokens: 1000,
-    messages: [{role:"user", content:userPrompt}]
+    messages: [{role:"user", content:cleanText(userPrompt)}]
   };
-  if(systemPrompt) body.system = systemPrompt;
+  if(systemPrompt) body.system = cleanText(systemPrompt, 8000);
   let res;
   try{
     res = await fetch(CONFIG.BACKEND_URL, {
@@ -471,7 +491,7 @@ async function callClaude(userPrompt, systemPrompt){
     clearTimeout(timeout);
   }
   const raw = await res.text();
-  if(!res.ok) throw new Error("Backend-Fehler ("+res.status+"): " + raw.slice(0,200));
+  if(!res.ok) throw new Error("KI-Dienst aktuell nicht verfügbar ("+res.status+").");
   const data = raw ? JSON.parse(raw) : {};
   if(typeof data.text === "string") return data.text.trim();
   if(typeof data.message === "string") return data.message.trim();
@@ -483,12 +503,14 @@ async function callClaude(userPrompt, systemPrompt){
   throw new Error("Backend-Antwort nicht verstanden.");
 }
 function parseJsonLoose(text){
-  const clean = text.replace(/```json|```/g,"").trim();
+  const clean = cleanText(text, 20000).replace(/```json|```/g,"").trim();
   const iObj = clean.indexOf("{"), iArr = clean.indexOf("[");
   const start = (iObj === -1) ? iArr : (iArr === -1) ? iObj : Math.min(iObj, iArr);
   const end = Math.max(clean.lastIndexOf("}"), clean.lastIndexOf("]"));
   if(start === -1 || end === -1) throw new Error("Kein JSON gefunden");
-  return JSON.parse(clean.slice(start, end+1));
+  const parsed = JSON.parse(clean.slice(start, end+1));
+  if(parsed && typeof parsed === "object") return parsed;
+  throw new Error("JSON-Struktur nicht verstanden");
 }
 async function aiBusy(btn, fn){
   const orig = btn.innerHTML;
@@ -564,6 +586,11 @@ function renderTranscript(interim){
   const t = $("transcript");
   t.innerHTML = esc(finalBuffer) + (interim ? '<span class="interim">'+esc(interim)+'</span>' : "");
 }
+$("transcript").addEventListener("paste", e=>{
+  e.preventDefault();
+  const text = cleanText((e.clipboardData || window.clipboardData).getData("text"), LIMITS.TEXT);
+  document.execCommand("insertText", false, text);
+});
 
 function applySnippets(text){
   let out = text;
@@ -579,7 +606,7 @@ async function startListening(){
     showSpeechWarn("Dein Browser unterstützt keine Spracherkennung. Nutze Chrome, Edge oder Safari – oder tippe den Text direkt ins Feld.");
     return;
   }
-  finalBuffer = $("transcript").innerText.trim();
+  finalBuffer = cleanText($("transcript").innerText.trim());
   if(finalBuffer) finalBuffer += " ";
   recog = buildRecognizer();
   try{ recog.start(); }catch(e){}
@@ -593,7 +620,7 @@ async function stopListening(){
   $("micStage").classList.remove("listening");
   $("micLabel").textContent = "Tippen zum Sprechen";
   renderTranscript("");
-  const text = $("transcript").innerText.trim();
+  const text = cleanText($("transcript").innerText.trim());
   if(text && $("autoPolish").checked){
     aiBusy($("polishBtn"), async ()=>{ await polish(); });
   }else if(text){
@@ -605,12 +632,11 @@ $("langSel").addEventListener("change", ()=>{ if(listening){ stopListening(); } 
 
 /* ---- KI-Politur ---- */
 async function polish(){
-  const raw = $("transcript").innerText.trim();
+  const raw = cleanText($("transcript").innerText.trim());
   if(!raw){ toast("Kein Text vorhanden."); return; }
   const sys = "Du bist eine Diktat-Politur-Engine wie Wispr Flow. Du bekommst ein rohes Sprachtranskript. Aufgaben: 1) Füllwörter entfernen (ähm, äh, also, halt, sozusagen, you know …). 2) Korrekte Interpunktion und Groß-/Kleinschreibung. 3) Selbstkorrekturen des Sprechers auflösen: bei 'X, nein warte, Y' oder 'X, ich meine Y' nur Y behalten. 4) Aufzählungen als saubere Liste formatieren, wenn der Sprecher offensichtlich aufzählt. 5) Sprache des Transkripts beibehalten, NICHT übersetzen. 6) Inhalt nicht verändern, nichts hinzufügen. Antworte NUR mit dem polierten Text, ohne Kommentar.";
   const result = await callClaude(raw, sys);
-  finalBuffer = result;
-  renderTranscript("");
+  setTranscriptText(result);
   saveHistory(result);
   toast("Text poliert ✨");
 }
@@ -618,14 +644,13 @@ $("polishBtn").addEventListener("click", ()=> aiBusy($("polishBtn"), polish));
 
 /* ---- Command Mode ---- */
 async function runCommand(){
-  const text = $("transcript").innerText.trim();
-  const cmd = $("cmdInput").value.trim();
+  const text = cleanText($("transcript").innerText.trim());
+  const cmd = cleanText($("cmdInput").value.trim(), LIMITS.COMMAND);
   if(!cmd){ toast("Bitte einen Befehl eingeben."); return; }
   if(!text){ toast("Kein Text im Transkript."); return; }
   const sys = "Du bist der Command Mode eines Diktat-Tools. Du bekommst einen TEXT und einen BEFEHL des Nutzers. Führe den Befehl auf dem Text aus (umformulieren, zusammenfassen, übersetzen, Stichpunkte, formeller/lockerer machen usw.). Antworte NUR mit dem Ergebnis-Text.";
   const result = await callClaude("TEXT:\n"+text+"\n\nBEFEHL: "+cmd, sys);
-  finalBuffer = result;
-  renderTranscript("");
+  setTranscriptText(result);
   saveHistory(result);
   $("cmdInput").value = "";
   toast("Befehl ausgeführt ✅");
@@ -647,7 +672,7 @@ $("cmdMicBtn").addEventListener("click", ()=>{
 
 /* ---- Kopieren / Leeren ---- */
 $("copyBtn").addEventListener("click", async ()=>{
-  const text = $("transcript").innerText.trim();
+  const text = cleanText($("transcript").innerText.trim());
   if(!text) return toast("Nichts zu kopieren.");
   try{ await navigator.clipboard.writeText(text); toast("Kopiert 📋"); }
   catch(e){
@@ -672,8 +697,9 @@ function renderSnippets(){
   }));
 }
 $("snipAdd").addEventListener("click", async ()=>{
-  const k = $("snipKey").value.trim(), v = $("snipVal").value.trim();
+  const k = cleanText($("snipKey").value.trim(), LIMITS.SNIPPET_KEY), v = cleanText($("snipVal").value.trim(), LIMITS.SNIPPET_VALUE);
   if(!k || !v) return toast("Kürzel und Volltext angeben.");
+  if(snippets.length >= LIMITS.SNIPPETS) return toast("Snippet-Limit erreicht.");
   snippets.push({key:k, val:v});
   await store.set("snippets", snippets);
   $("snipKey").value=""; $("snipVal").value="";
@@ -683,8 +709,8 @@ $("snipAdd").addEventListener("click", async ()=>{
 /* ---- Verlauf ---- */
 let history = [];
 async function saveHistory(text){
-  history.unshift({text, ts: Date.now()});
-  history = history.slice(0, 25);
+  history.unshift({text: cleanText(text, LIMITS.HISTORY_TEXT), ts: Date.now()});
+  history = history.slice(0, LIMITS.HISTORY_ITEMS);
   await store.set("history", history);
   renderHistory();
 }
@@ -736,12 +762,12 @@ function normalizeTask(t){
   return {
     id: t.id || ("t"+Date.now()+Math.random().toString(36).slice(2,6)),
     time: typeof t.time === "string" ? t.time : "",
-    title: String(t.title || "Aufgabe").slice(0,120),
+    title: cleanText(t.title || "Aufgabe", LIMITS.TASK_TITLE),
     cat: CATS.includes(t.cat || t.category) ? (t.cat || t.category) : "Privat",
     done: !!t.done,
     priority: PRIOS.includes(t.priority) ? t.priority : "normal",
     duration: Number(t.duration) > 0 ? Math.min(480, Number(t.duration)) : 30,
-    notes: t.notes ? String(t.notes).slice(0,140) : ""
+    notes: t.notes ? cleanText(t.notes, LIMITS.TASK_NOTES) : ""
   };
 }
 function allWeekTasks(){ return DAYS.flatMap(day=>week[day].map(t=>({day, ...normalizeTask(t)}))); }
@@ -958,8 +984,8 @@ $("weekMicBtn").addEventListener("click", ()=>{
   weekRecog.onresult = ev=>{
     let interim = "";
     for(let i=ev.resultIndex;i<ev.results.length;i++){
-      if(ev.results[i].isFinal) weekBuffer += ev.results[i][0].transcript+" ";
-      else interim += ev.results[i][0].transcript;
+      if(ev.results[i].isFinal) weekBuffer = cleanText(weekBuffer + ev.results[i][0].transcript+" ");
+      else interim += cleanText(ev.results[i][0].transcript, 1000);
     }
     st.textContent = "„"+(weekBuffer+interim).trim()+"“";
   };
@@ -978,6 +1004,7 @@ $("weekMicBtn").addEventListener("click", ()=>{
   try{ weekRecog.start(); }catch(e){}
 });
 async function parseWeekSpeech(text){
+  text = cleanText(text);
   const sys = 'Du wandelst frei gesprochene Wochenplanung in JSON um. Tage: mon,tue,wed,thu,fri,sat,sun. Kategorien: genau eine aus ["Fokus","Lernen","Arbeit","Sport","Privat","Erholung"] (Fokus für Deep Work/Top-Prioritäten, Lernen für Schule/Uni/Vokabeln/Üben, Sport für Fitness/Training, Erholung für Pausen/Schlaf/Regeneration, Privat für Familie/Freunde/Erledigungen). "time" im Format "HH:MM" oder "" wenn keine Uhrzeit genannt ("abends"≈"19:00", "morgens"≈"08:00", "mittags"≈"12:00", "nachmittags"≈"15:00"). "priority" ist "high", "medium", "normal" oder "low". "duration" ist Minuten, realistisch schätzen. Antworte NUR mit einem JSON-Array wie: [{"day":"mon","time":"09:00","title":"Mathe lernen","category":"Lernen","priority":"high","duration":60}]';
   let tasks;
   try{
@@ -995,7 +1022,7 @@ async function parseWeekSpeech(text){
     week[t.day].push(normalizeTask({
       id:"t"+Date.now()+Math.random().toString(36).slice(2,6),
       time: (t.time||"").match(/^\d{2}:\d{2}$/) ? t.time : "",
-      title: String(t.title).slice(0,120),
+      title: cleanText(t.title, LIMITS.TASK_TITLE),
       cat: CATS.includes(t.category) ? t.category : "Privat",
       priority: PRIOS.includes(t.priority) ? t.priority : "normal",
       duration: Number(t.duration) || 30,
