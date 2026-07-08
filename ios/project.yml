@@ -1,0 +1,17 @@
+name: FlowWeek
+options:
+  bundleIdPrefix: com.flowweek
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  FlowWeek:
+    type: application
+    platform: iOS
+    sources:
+      - FlowWeek
+    settings:
+      base:
+        INFOPLIST_FILE: FlowWeek/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.flowweek.app
+        SWIFT_VERSION: "5.0"
+
