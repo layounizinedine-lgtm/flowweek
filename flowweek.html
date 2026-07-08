@@ -167,6 +167,14 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 details.settings{margin-top:22px}
 details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600}
 @media(min-width:720px){ .days-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px} .daycol{margin-bottom:0} }
+@media(max-width:520px){
+  header.top{align-items:flex-start;gap:10px}
+  .accountbar{justify-content:flex-end;text-align:right}
+  .weekstrip{gap:4px}
+  .addrow.open{grid-template-columns:1fr 1fr 40px}
+  .addrow [data-add-title]{grid-column:1 / -1}
+  .score-wrap{align-items:flex-start;flex-direction:column}
+}
 
 /* ---------- Auth ---------- */
 .authmask{position:fixed;inset:0;background:rgba(8,10,14,.88);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -190,7 +198,7 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
 <div class="authmask" id="authMask" style="display:none">
   <div class="authcard">
     <div class="logo"><span class="fw-flow">Flow</span><span class="fw-week">Week</span></div>
-    <div class="authsub">Melde dich an – deine Daten bleiben nur bei dir.</div>
+    <div class="authsub">Melde dich an, um deine Woche zwischen Geräten zu synchronisieren.</div>
     <div class="authtabs">
       <button class="on" id="tabLogin">Anmelden</button>
       <button id="tabRegister">Registrieren</button>
@@ -296,7 +304,7 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
   <section class="view" id="view-analysis">
     <h2 class="section" style="margin-top:6px;color:var(--green)">KI-Wochenanalyse</h2>
     <div class="card">
-      <p class="hint" style="margin-bottom:10px">Die KI bewertet deine geplante Woche: Balance, Lern-Effizienz, Pausen, realistische Zeitplanung – und gibt dir konkrete Verbesserungen.</p>
+      <p class="hint" style="margin-bottom:10px">Die KI bewertet deine geplante Woche: Balance, Lern-Effizienz, Pausen, realistische Zeitplanung – und gibt dir konkrete Verbesserungen. Wenn die KI offline ist, bekommst du eine lokale Basisanalyse.</p>
       <button class="btn blue" id="analyzeBtn">🧠 Woche analysieren</button>
     </div>
     <div id="anaResult" style="margin-top:14px"></div>
@@ -307,6 +315,7 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
     <div class="card" style="margin-top:8px">
       <div id="settingsAccount" class="hint">Du bist als Gast unterwegs – Daten liegen nur auf diesem Gerät.</div>
       <div class="btnrow" id="settingsActions"></div>
+      <p class="hint" style="margin-top:10px">Hinweis: KI-Funktionen senden den jeweils relevanten Text an den FlowWeek-Backend-Proxy. Gastdaten bleiben lokal im Browser.</p>
     </div>
   </details>
 </div>
@@ -405,21 +414,35 @@ async function callClaude(userPrompt, systemPrompt){
   if(!backendConfigured()){
     throw new Error("Backend-Proxy noch nicht konfiguriert (CONFIG.BACKEND_URL).");
   }
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 25000);
   const body = {
-    model: "claude-sonnet-5",
     max_tokens: 1000,
     messages: [{role:"user", content:userPrompt}]
   };
   if(systemPrompt) body.system = systemPrompt;
-  const res = await fetch(CONFIG.BACKEND_URL, {
-    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)
-  });
-  if(!res.ok){
-    const errText = await res.text().catch(()=> "");
-    throw new Error("Backend-Fehler ("+res.status+"): " + errText.slice(0,200));
+  let res;
+  try{
+    res = await fetch(CONFIG.BACKEND_URL, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+  }finally{
+    clearTimeout(timeout);
   }
-  const data = await res.json();
-  return (data.content || []).filter(b=>b.type==="text").map(b=>b.text).join("\n").trim();
+  const raw = await res.text();
+  if(!res.ok) throw new Error("Backend-Fehler ("+res.status+"): " + raw.slice(0,200));
+  const data = raw ? JSON.parse(raw) : {};
+  if(typeof data.text === "string") return data.text.trim();
+  if(typeof data.message === "string") return data.message.trim();
+  if(typeof data.completion === "string") return data.completion.trim();
+  if(data.content && typeof data.content === "string") return data.content.trim();
+  if(data.content && Array.isArray(data.content)){
+    return data.content.filter(b=>b.type==="text" || typeof b.text === "string").map(b=>b.text || "").join("\n").trim();
+  }
+  throw new Error("Backend-Antwort nicht verstanden.");
 }
 function parseJsonLoose(text){
   const clean = text.replace(/```json|```/g,"").trim();
@@ -435,7 +458,8 @@ async function aiBusy(btn, fn){
   try{ await fn(); }
   catch(e){
     console.error(e);
-    toast("KI nicht erreichbar. Lokal geöffnet? Trage unten deinen API-Key ein.");
+    updateAiStatus("KI offline");
+    toast(e.message ? e.message.slice(0,120) : "KI nicht erreichbar.");
   }
   finally{ btn.disabled = false; btn.innerHTML = orig; }
 }
@@ -760,17 +784,24 @@ function renderWeek(){
   }));
 }
 async function addTaskFromRow(day){
-  const title = document.querySelector('[data-add-title="'+day+'"]').value.trim();
+  const titleInput = document.querySelector('[data-add-title="'+day+'"]');
+  const timeInput = document.querySelector('[data-add-time="'+day+'"]');
+  const catInput = document.querySelector('[data-add-cat="'+day+'"]');
+  const title = titleInput.value.trim();
   if(!title) return toast("Aufgabe eingeben.");
-  const time = document.querySelector('[data-add-time="'+day+'"]').value;
-  const cat = document.querySelector('[data-add-cat="'+day+'"]').value;
+  const time = timeInput.value;
+  const cat = catInput.value;
   week[day].push({id:"t"+Date.now()+Math.random().toString(36).slice(2,6), time, title, cat, done:false});
   await saveWeek(); renderWeek();
   /* Eingabezeile offen lassen für die nächste Aufgabe */
   const row = document.getElementById("addrow-"+day);
   const tog = document.querySelector('[data-toggle="'+day+'"]');
   if(row){ row.classList.add("open"); tog && tog.classList.add("open");
-    const inp = row.querySelector("[data-add-title]"); if(inp) inp.focus(); }
+    const nextTitle = row.querySelector("[data-add-title]");
+    const nextTime = row.querySelector("[data-add-time]");
+    if(nextTitle){ nextTitle.value = ""; nextTitle.focus(); }
+    if(nextTime) nextTime.value = "";
+  }
 }
 $("wkPrev").addEventListener("click", ()=>{ currentMonday.setDate(currentMonday.getDate()-7); loadWeek(); });
 $("wkNext").addEventListener("click", ()=>{ currentMonday.setDate(currentMonday.getDate()+7); loadWeek(); });
@@ -810,8 +841,15 @@ $("weekMicBtn").addEventListener("click", ()=>{
 });
 async function parseWeekSpeech(text){
   const sys = 'Du wandelst frei gesprochene Wochenplanung in JSON um. Tage: mon,tue,wed,thu,fri,sat,sun. Kategorien: genau eine aus ["Lernen","Arbeit","Sport","Privat"] (Lernen für Schule/Uni/Vokabeln/Üben, Sport für Fitness/Training, Privat für Familie/Freunde/Erledigungen). "time" im Format "HH:MM" oder "" wenn keine Uhrzeit genannt ("abends"≈"19:00", "morgens"≈"08:00", "mittags"≈"12:00", "nachmittags"≈"15:00"). Antworte NUR mit einem JSON-Array wie: [{"day":"mon","time":"09:00","title":"Mathe lernen","category":"Lernen"}]';
-  const result = await callClaude("Gesprochene Planung: "+text, sys);
-  const tasks = parseJsonLoose(result);
+  let tasks;
+  try{
+    const result = await callClaude("Gesprochene Planung: "+text, sys);
+    tasks = parseJsonLoose(result);
+  }catch(e){
+    console.warn("KI-Planung fehlgeschlagen, nutze lokalen Parser:", e);
+    tasks = parseWeekSpeechLocal(text);
+    toast("KI offline: einfache lokale Erkennung genutzt.");
+  }
   if(!Array.isArray(tasks) || !tasks.length) throw new Error("Keine Aufgaben erkannt");
   let count = 0;
   for(const t of tasks){
@@ -828,6 +866,44 @@ async function parseWeekSpeech(text){
   await saveWeek(); renderWeek();
   toast(count+" Termine eingetragen ✅");
 }
+function parseWeekSpeechLocal(text){
+  const dayMap = [
+    ["mon", /\b(montag|mo)\b/i], ["tue", /\b(dienstag|di)\b/i], ["wed", /\b(mittwoch|mi)\b/i],
+    ["thu", /\b(donnerstag|do)\b/i], ["fri", /\b(freitag|fr)\b/i], ["sat", /\b(samstag|sa)\b/i],
+    ["sun", /\b(sonntag|so)\b/i]
+  ];
+  const normalized = text.replace(/[.,;]+/g, " ").replace(/\s+/g, " ").trim();
+  const hits = [];
+  for(const [day, rx] of dayMap){
+    const m = normalized.match(rx);
+    if(m) hits.push({day, index:m.index, label:m[0]});
+  }
+  hits.sort((a,b)=>a.index-b.index);
+  return hits.map((hit, i)=>{
+    const next = hits[i+1] ? hits[i+1].index : normalized.length;
+    let part = normalized.slice(hit.index + hit.label.length, next).trim();
+    const time = extractTime(part);
+    part = part.replace(/\b(um|gegen|ca\.?)\b/gi, "").replace(/\b\d{1,2}([:.]\d{2})?\s*(uhr)?\b/i, "").trim();
+    return {day: hit.day, time, title: part || "Aufgabe", category: inferCategory(part)};
+  }).filter(t=>t.title);
+}
+function extractTime(text){
+  const daypart = text.match(/\b(morgens|vormittags|mittags|nachmittags|abends|nachts)\b/i);
+  if(daypart){
+    return {morgens:"08:00", vormittags:"10:00", mittags:"12:00", nachmittags:"15:00", abends:"19:00", nachts:"21:00"}[daypart[1].toLowerCase()];
+  }
+  const m = text.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*(?:uhr)?\b/i);
+  if(!m) return "";
+  const h = Math.max(0, Math.min(23, parseInt(m[1],10)));
+  const min = m[2] ? Math.max(0, Math.min(59, parseInt(m[2],10))) : 0;
+  return String(h).padStart(2,"0")+":"+String(min).padStart(2,"0");
+}
+function inferCategory(text){
+  if(/\b(lernen|schule|uni|mathe|deutsch|englisch|vokabel|prüfung|klausur|hausaufgabe|lesen)\b/i.test(text)) return "Lernen";
+  if(/\b(job|arbeit|meeting|kunde|projekt|büro|call)\b/i.test(text)) return "Arbeit";
+  if(/\b(sport|fitness|training|laufen|gym|fußball|schwimmen)\b/i.test(text)) return "Sport";
+  return "Privat";
+}
 
 /* ============================================================
    KI-WOCHENANALYSE
@@ -841,9 +917,44 @@ async function analyzeWeek(){
     return DAYNAMES[d]+": "+(tasks||"nichts geplant");
   }).join("\n");
   const sys = 'Du bist ein Produktivitäts- und Lern-Coach. Bewerte den Wochenplan des Nutzers: Balance (Lernen/Arbeit/Sport/Erholung), realistische Zeitplanung, Pausen, Lern-Effizienz (Spaced Repetition, feste Lernblöcke, schwere Aufgaben zu Hochleistungszeiten, Pomodoro), freie Tage. Sei konkret und beziehe dich auf die tatsächlichen Einträge. Antworte NUR als JSON: {"score": 0-100, "fazit": "1-2 Sätze Gesamturteil", "staerken": ["…","…"], "verbesserungen": ["konkreter Vorschlag mit Bezug auf den Plan", "…"], "lerntipps": ["Lern-Tipp bezogen auf die Lerneinträge", "…"]}. Jeweils 2-4 Punkte pro Liste, auf Deutsch, direkt und freundlich (du-Form).';
-  const result = await callClaude("Mein Wochenplan:\n"+weekDesc, sys);
-  const a = parseJsonLoose(result);
+  let a;
+  try{
+    const result = await callClaude("Mein Wochenplan:\n"+weekDesc, sys);
+    a = parseJsonLoose(result);
+  }catch(e){
+    console.warn("KI-Analyse fehlgeschlagen, nutze lokale Analyse:", e);
+    a = analyzeWeekLocal();
+    toast("KI offline: lokale Basisanalyse erstellt.");
+  }
   renderAnalysis(a);
+}
+function analyzeWeekLocal(){
+  const allTasks = DAYS.flatMap(d=>week[d].map(t=>({day:d, ...t})));
+  const total = allTasks.length;
+  const done = allTasks.filter(t=>t.done).length;
+  const counts = {}; CATS.forEach(c=>counts[c]=allTasks.filter(t=>t.cat===c).length);
+  const plannedDays = DAYS.filter(d=>week[d].length).length;
+  let score = 45 + Math.min(20, plannedDays*3) + (counts.Sport ? 10 : 0) + (counts.Lernen ? 10 : 0) + Math.round((done/Math.max(1,total))*15);
+  if(total > 22) score -= 10;
+  score = Math.max(20, Math.min(88, score));
+  const improvements = [];
+  if(!counts.Sport) improvements.push("Plane mindestens einen festen Sport- oder Bewegungsblock ein, damit die Woche nicht nur aus Aufgaben besteht.");
+  if(!counts.Lernen) improvements.push("Lege einen kleinen Lernblock an, wenn du Fortschritt bei Schule, Uni oder Skills sichtbar machen willst.");
+  if(total > 18) improvements.push("Die Woche wirkt voll. Markiere 2-3 Aufgaben als optional oder verschiebe sie, bevor es stressig wird.");
+  if(plannedDays < 5) improvements.push("Verteile wichtige Aufgaben auf mehr Tage, damit einzelne Tage nicht zu schwer werden.");
+  return {
+    score,
+    fazit: "Das ist eine solide Grundplanung. Für eine wirklich starke Woche braucht FlowWeek noch mehr Balance und bewusst freie Puffer.",
+    staerken: [
+      "Du hast konkrete Aufgaben in deiner Woche sichtbar gemacht.",
+      done ? "Erledigte Aufgaben werden bereits messbar verfolgt." : "Die Struktur ist bereit, um Fortschritt täglich abzuhaken."
+    ],
+    verbesserungen: improvements.slice(0,4),
+    lerntipps: [
+      "Lege Lernblöcke möglichst mit Uhrzeit an, damit sie nicht gegen spontane Aufgaben verlieren.",
+      "Plane nach einem Lernblock direkt eine kurze Wiederholung am nächsten oder übernächsten Tag."
+    ]
+  };
 }
 function renderAnalysis(a){
   const score = Math.max(0, Math.min(100, +a.score||0));
@@ -959,9 +1070,10 @@ async function loadAllUserData(){
   renderAccountBar();
   updateAiStatus();
 }
-function updateAiStatus(){
+function updateAiStatus(label){
   const el = $("aiStatus");
-  if(backendConfigured()){ el.textContent = "KI bereit"; el.classList.remove("offline"); }
+  if(label){ el.textContent = label; el.classList.add("offline"); }
+  else if(backendConfigured()){ el.textContent = "KI bereit"; el.classList.remove("offline"); }
   else{ el.textContent = "KI: Backend fehlt"; el.classList.add("offline"); }
 }
 
