@@ -14,3 +14,7 @@ For the Vercel AI proxy, configure:
 - optional `ANTHROPIC_MODEL`
 
 See `SECURITY.md` for details.
+
+## Launch readiness
+
+See [`LAUNCH_CHECKLIST.md`](LAUNCH_CHECKLIST.md) for the current launch analysis, risk list, test plan, and release checklist.
