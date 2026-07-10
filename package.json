@@ -1,5 +1,9 @@
 {
   "name": "flowweek-backend",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "check:js": "node --check api/chat.js && node -e \"const fs=require('fs');const s=fs.readFileSync('flowweek.html','utf8');fs.writeFileSync('/tmp/flowweek-script.js',s.slice(s.indexOf('<script>')+8,s.lastIndexOf('</script>')));\" && node --check /tmp/flowweek-script.js"
+  }
 }

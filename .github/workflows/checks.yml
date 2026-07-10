@@ -1,0 +1,35 @@
+name: PR Checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - work
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test and syntax checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Show npm version
+        run: npm --version
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run JavaScript syntax checks
+        run: npm run check:js

@@ -194,6 +194,13 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--line);padding:10px 18px;border-radius:12px;font-size:13.5px;opacity:0;transition:all .25s;pointer-events:none;z-index:99;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%)}
 .warn{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.35);border-radius:10px;padding:10px 12px;font-size:13px;color:#fca5a5;margin-bottom:12px}
+.voice-preview{margin-top:12px;border-color:rgba(94,162,255,.36);background:linear-gradient(160deg,var(--surface),#151b28)}
+.preview-day{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.preview-day:first-child{border-top:0;margin-top:0;padding-top:0}
+.preview-day h3{font-family:'Archivo',sans-serif;font-size:14px;margin-bottom:8px;color:var(--blue)}
+.preview-item{display:grid;grid-template-columns:82px 1fr 112px 34px;gap:7px;align-items:center;margin-bottom:7px}
+.preview-item input,.preview-item select{padding:7px 8px;font-size:13px}
+.amb-list{margin-top:8px;color:var(--amber);font-size:12.5px}
 details.settings{margin-top:22px}
 details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600}
 @media(min-width:720px){ .days-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px} .daycol{margin-bottom:0} }
@@ -207,6 +214,8 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
   .addrow [data-add-title]{grid-column:1 / -1}
   .addrow [data-add-cat],.addrow [data-add-prio],.addrow [data-add-duration]{grid-column:auto}
   .score-wrap{align-items:flex-start;flex-direction:column}
+  .preview-item{grid-template-columns:1fr 1fr 34px}
+  .preview-item [data-prev-title]{grid-column:1 / -1}
 }
 
 /* ---------- Auth ---------- */
@@ -336,6 +345,7 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
         <p class="hint">Sprich frei: „Montag um 9 Mathe lernen, Dienstag 18 Uhr Fitness, Mittwochabend Familie …“ – die KI trägt alles ein.</p>
       </div>
       <div class="hint" id="weekMicStatus" style="margin-top:8px;display:none"></div>
+      <div id="weekPreview" class="card voice-preview" style="display:none"></div>
     </div>
     <div class="days-grid" id="daysGrid"></div>
   </section>
@@ -1057,9 +1067,10 @@ $("weekMicBtn").addEventListener("click", ()=>{
   weekRecog.onerror = ()=>{ weekListening=false; $("weekMicBtn").innerHTML="🎙️ Woche einsprechen"; st.style.display="none"; };
   try{ weekRecog.start(); }catch(e){}
 });
+let pendingVoiceTasks = [];
 async function parseWeekSpeech(text){
-  text = cleanText(text);
-  const sys = 'Du wandelst frei gesprochene Wochenplanung in JSON um. Tage: mon,tue,wed,thu,fri,sat,sun. Kategorien: genau eine aus ["Fokus","Lernen","Arbeit","Sport","Privat","Erholung"] (Fokus für Deep Work/Top-Prioritäten, Lernen für Schule/Uni/Vokabeln/Üben, Sport für Fitness/Training, Erholung für Pausen/Schlaf/Regeneration, Privat für Familie/Freunde/Erledigungen). "time" im Format "HH:MM" oder "" wenn keine Uhrzeit genannt ("abends"≈"19:00", "morgens"≈"08:00", "mittags"≈"12:00", "nachmittags"≈"15:00"). "priority" ist "high", "medium", "normal" oder "low". "duration" ist Minuten, realistisch schätzen. WICHTIG: Wenn an einem Tag mehrere Uhrzeiten oder Aktivitäten genannt werden ("dann", "danach", "und um X Uhr"), erzeuge für JEDE Aktivität einen EIGENEN Eintrag mit ihrer EIGENEN Uhrzeit – niemals zusammenfassen. Beispiel: "Donnerstag um 12 lerne ich, dann um 15 Uhr trainiere ich" ergibt ZWEI Einträge: [{"day":"thu","time":"12:00","title":"Lernen","category":"Lernen","priority":"normal","duration":60},{"day":"thu","time":"15:00","title":"Training","category":"Sport","priority":"normal","duration":60}]. Antworte NUR mit einem JSON-Array wie: [{"day":"mon","time":"09:00","title":"Mathe lernen","category":"Lernen","priority":"high","duration":60}]';
+  text = cleanText(applySelfCorrections(text));
+  const sys = 'Du wandelst frei gesprochene Wochenplanung in ein streng validierbares JSON-Array um. Bezugswoche ist die aktuell angezeigte Woche ab '+localDateKey(currentMonday)+'. Nutze Tage mon,tue,wed,thu,fri,sat,sun. Heute/morgen/übermorgen/nächste Woche/Wochenende anhand dieses Datums einordnen; bei Wochenende bevorzugt Samstag. Kategorien: genau eine aus ["Fokus","Lernen","Arbeit","Sport","Privat","Erholung"]. "time" im Format "HH:MM" oder "". "priority" ist "high", "medium", "normal" oder "low". "duration" ist Minuten. Erzeuge für JEDE Aktivität einen EIGENEN Eintrag mit eigener Uhrzeit. Löse Selbstkorrekturen auf und behalte die letzte Aussage ("Dienstag 15 Uhr, nein Mittwoch 16 Uhr" => Mittwoch 16 Uhr). Keine Informationen erfinden. Unsichere Titel kurz halten und mit "needsConfirmation":true markieren. Antworte NUR mit JSON: [{"day":"mon","time":"09:00","title":"Mathe lernen","category":"Lernen","priority":"normal","duration":60,"needsConfirmation":false}]';
   let tasks;
   try{
     const result = await callClaude("Gesprochene Planung: "+text, sys);
@@ -1070,25 +1081,62 @@ async function parseWeekSpeech(text){
   }catch(e){
     console.warn("KI-Planung fehlgeschlagen, nutze lokalen Parser:", e);
     tasks = parseWeekSpeechLocal(text);
-    toast("KI offline: einfache lokale Erkennung genutzt.");
+    toast("KI offline: einfache lokale Erkennung genutzt. Bitte Vorschau prüfen.");
   }
-  if(!Array.isArray(tasks) || !tasks.length) throw new Error("Keine Aufgaben erkannt");
+  const normalized = buildVoiceDraft(tasks);
+  if(!normalized.length) throw new Error("Keine klaren Einträge erkannt. Bitte nenne mindestens einen Tag und eine Aufgabe.");
+  pendingVoiceTasks = normalized;
+  renderVoicePreview();
+}
+function buildVoiceDraft(tasks){
+  const seen = new Set();
+  const out = [];
+  for(const t of Array.isArray(tasks) ? tasks : []){
+    if(!DAYS.includes(t.day) || !cleanText(t.title, LIMITS.TASK_TITLE)) continue;
+    const item = normalizeTask({
+      id:newTaskId(), time: /^\d{2}:\d{2}$/.test(t.time||"") ? t.time : "",
+      title: cleanText(t.title, LIMITS.TASK_TITLE), cat: CATS.includes(t.category || t.cat) ? (t.category || t.cat) : inferCategory(t.title),
+      priority: PRIOS.includes(t.priority) ? t.priority : inferPriority(t.title), duration: Number(t.duration) || inferDuration(t.title),
+      notes: t.needsConfirmation ? "Bitte prüfen" : ""
+    });
+    const key = [t.day,item.time,item.title.toLowerCase()].join("|");
+    if(seen.has(key)) continue;
+    seen.add(key); out.push({day:t.day, ...item});
+  }
+  return out;
+}
+function renderVoicePreview(){
+  const box = $("weekPreview");
+  if(!pendingVoiceTasks.length){ box.style.display="none"; box.innerHTML=""; return; }
+  const groups = DAYS.filter(d=>pendingVoiceTasks.some(t=>t.day===d)).map(d=>{
+    const rows = pendingVoiceTasks.map((t,i)=>({t,i})).filter(x=>x.t.day===d).map(({t,i})=>
+      '<div class="preview-item" data-prev-row="'+i+'"><input type="time" data-prev-time value="'+esc(t.time)+'"><input data-prev-title value="'+esc(t.title)+'"><select data-prev-cat>'+CATS.map(c=>'<option '+(c===t.cat?'selected':'')+'>'+c+'</option>').join("")+'</select><button class="icon-btn" data-prev-del="'+i+'" aria-label="Entfernen">✕</button></div>'
+    ).join("");
+    return '<div class="preview-day"><h3>'+DAYNAMES[d]+'</h3>'+rows+'</div>';
+  }).join("");
+  box.innerHTML = '<div class="eyebrow">Ich habe Folgendes verstanden</div><p class="hint">Prüfe die Vorschau. Gespeichert wird erst nach deiner Bestätigung.</p>'+groups+'<div class="btnrow"><button class="btn blue" id="voiceConfirmBtn">Einträge speichern</button><button class="btn ghost" id="voiceCancelBtn">Verwerfen</button></div>';
+  box.style.display = "block";
+  box.querySelectorAll("[data-prev-time],[data-prev-title],[data-prev-cat]").forEach(el=>el.addEventListener("input", syncVoicePreview));
+  box.querySelectorAll("[data-prev-del]").forEach(b=>b.addEventListener("click", ()=>{ pendingVoiceTasks.splice(+b.dataset.prevDel,1); renderVoicePreview(); }));
+  $("voiceCancelBtn").addEventListener("click", ()=>{ pendingVoiceTasks=[]; renderVoicePreview(); });
+  $("voiceConfirmBtn").addEventListener("click", confirmVoicePreview);
+}
+function syncVoicePreview(){
+  document.querySelectorAll("[data-prev-row]").forEach(row=>{
+    const t = pendingVoiceTasks[+row.dataset.prevRow]; if(!t) return;
+    t.time = row.querySelector("[data-prev-time]").value;
+    t.title = cleanText(row.querySelector("[data-prev-title]").value.trim(), LIMITS.TASK_TITLE);
+    t.cat = row.querySelector("[data-prev-cat]").value;
+  });
+}
+async function confirmVoicePreview(){
+  syncVoicePreview();
   let count = 0;
-  for(const t of tasks){
-    if(!DAYS.includes(t.day) || !t.title) continue;
-    week[t.day].push(normalizeTask({
-      id:newTaskId(),
-      time: (t.time||"").match(/^\d{2}:\d{2}$/) ? t.time : "",
-      title: cleanText(t.title, LIMITS.TASK_TITLE),
-      cat: CATS.includes(t.category) ? t.category : "Privat",
-      priority: PRIOS.includes(t.priority) ? t.priority : "normal",
-      duration: Number(t.duration) || 30,
-      done:false
-    }));
-    count++;
-  }
-  await saveWeek(); renderWeek();
-  toast(count+" Termine eingetragen ✅");
+  pendingVoiceTasks = buildVoiceDraft(pendingVoiceTasks);
+  pendingVoiceTasks.forEach(({day, ...task})=>{ week[day].push(normalizeTask(task)); count++; });
+  pendingVoiceTasks = [];
+  await saveWeek(); renderWeek(); renderVoicePreview();
+  toast(count+" Einträge gespeichert ✅");
 }
 /* Lokaler Fallback-Parser:
    1) Text in Tages-Segmente teilen (Montag …, Dienstag …)
@@ -1125,11 +1173,15 @@ function parseWeekSpeechLocal(text){
   ];
   const normalized = text.replace(/[.,;]+/g, " ").replace(/\s+/g, " ").trim();
   const hits = [];
+  for(const hit of relativeDateHits(normalized)){ hits.push(hit); }
   for(const [day, rx] of dayMap){
     const m = normalized.match(rx);
     if(m) hits.push({day, index:m.index, label:m[0]});
   }
   hits.sort((a,b)=>a.index-b.index);
+  const dedupHits = [];
+  hits.forEach(h=>{ if(!dedupHits.some(x=>Math.abs(x.index-h.index)<3)) dedupHits.push(h); });
+  hits.splice(0, hits.length, ...dedupHits);
   const tasks = [];
   hits.forEach((hit, i)=>{
     const next = hits[i+1] ? hits[i+1].index : normalized.length;
@@ -1156,6 +1208,24 @@ function parseWeekSpeechLocal(text){
     }
   });
   return tasks;
+}
+function dayForDate(date){ return DAYS[(date.getDay()+6)%7]; }
+function relativeDateHits(text){
+  const base = new Date();
+  const patterns = [
+    {rx:/\b(?:heute)\b/gi, add:0}, {rx:/\b(?:morgen)\b/gi, add:1}, {rx:/\b(?:übermorgen|uebermorgen)\b/gi, add:2},
+    {rx:/\b(?:wochenende|am\s+wochenende)\b/gi, weekend:true}
+  ];
+  const hits = [];
+  for(const p of patterns){
+    let m; while((m = p.rx.exec(text)) !== null){
+      const d = new Date(base);
+      if(p.weekend){ const idx = (d.getDay()+6)%7; d.setDate(d.getDate() + (5 - idx + 7) % 7); }
+      else d.setDate(d.getDate()+p.add);
+      hits.push({day:dayForDate(d), index:m.index, label:m[0]});
+    }
+  }
+  return hits;
 }
 function extractTime(text){
   const daypart = text.match(/\b(morgens|vormittags|mittags|nachmittags|abends|nachts)\b/i);
