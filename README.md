@@ -50,6 +50,12 @@ Getestet werden Datumsberechnung (inkl. Jahreswechsel und Sommerzeit), relative 
 
 ## Changelog
 
+### 1.2.0 (2026-07-10)
+- Neues Logo: Bildmarke mit Verlauf und Audio-Wellenform, passendes Favicon, verfeinerte Wortmarke.
+- Passwort-Reset: „Passwort vergessen?“ schickt einen Link per E-Mail; über den Link wird ein neues Passwort gesetzt.
+- Sicherheit: Supabase-Script auf Version 2.110.2 gepinnt mit Subresource-Integrity-Hash (Schutz vor manipuliertem CDN).
+- Barrierefreiheit: sichtbarer Tastatur-Fokus für alle Bedienelemente.
+
 ### 1.1.0 (2026-07-10)
 - Vorschau mit Bestätigung für „Woche einsprechen“: Einträge werden pro Tag gruppiert angezeigt und erst nach Bestätigung gespeichert; Duplikate werden markiert.
 - KI erhält Datumskontext (heutiges Datum, Wochentage der angezeigten Woche) und Regeln für Korrekturen im Satz; lokaler Parser versteht heute/morgen/übermorgen/Wochenende.
