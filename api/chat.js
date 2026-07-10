@@ -7,8 +7,16 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:4173"
 ];
 const WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = Number(process.env.RATE_LIMIT_PER_MINUTE || 20);
+const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = Number(process.env.RATE_LIMIT_PER_MINUTE || 10);
+// Kostendeckel: Gesamtlimits ueber ALLE Nutzer, damit ein Angreifer mit vielen
+// IPs nicht unbegrenzt API-Kosten erzeugen kann. Hinweis: Zaehler sind
+// In-Memory pro Serverless-Instanz - das harte Limit gehoert zusaetzlich in
+// die Anthropic Console (Settings -> Limits -> Spend Limit).
+const GLOBAL_PER_MINUTE = Number(process.env.GLOBAL_LIMIT_PER_MINUTE || 30);
+const GLOBAL_PER_DAY = Number(process.env.GLOBAL_LIMIT_PER_DAY || 300);
 const requestBuckets = new Map();
+const globalBucket = { minuteCount: 0, minuteResetAt: 0, dayCount: 0, dayResetAt: 0 };
 
 function allowedOrigins() {
   return (process.env.ALLOWED_ORIGINS || DEFAULT_ALLOWED_ORIGINS.join(","))
@@ -28,12 +36,35 @@ function setSecurityHeaders(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
-  return !origin || allowed.includes(origin);
+  // Origin ist Pflicht: Anfragen ohne Origin (curl, Skripte) werden abgelehnt,
+  // damit der Proxy nicht als offener KI-Zugang missbraucht werden kann.
+  return !!origin && allowed.includes(origin);
 }
 
 function clientIp(req) {
   const forwarded = String(req.headers["x-forwarded-for"] || "");
   return forwarded.split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
+}
+
+function globalLimit() {
+  const now = Date.now();
+  if (now > globalBucket.minuteResetAt) {
+    globalBucket.minuteCount = 0;
+    globalBucket.minuteResetAt = now + WINDOW_MS;
+  }
+  if (now > globalBucket.dayResetAt) {
+    globalBucket.dayCount = 0;
+    globalBucket.dayResetAt = now + DAY_MS;
+  }
+  globalBucket.minuteCount += 1;
+  globalBucket.dayCount += 1;
+  if (globalBucket.dayCount > GLOBAL_PER_DAY) {
+    return { ok: false, retryAfter: Math.max(60, Math.ceil((globalBucket.dayResetAt - now) / 1000)) };
+  }
+  if (globalBucket.minuteCount > GLOBAL_PER_MINUTE) {
+    return { ok: false, retryAfter: Math.max(1, Math.ceil((globalBucket.minuteResetAt - now) / 1000)) };
+  }
+  return { ok: true };
 }
 
 function rateLimit(req) {
@@ -76,6 +107,12 @@ module.exports = async function handler(req, res) {
   if (!limit.ok) {
     res.setHeader("Retry-After", String(limit.retryAfter));
     res.status(429).json({ error: "Zu viele Anfragen. Bitte kurz warten." });
+    return;
+  }
+  const global = globalLimit();
+  if (!global.ok) {
+    res.setHeader("Retry-After", String(global.retryAfter));
+    res.status(429).json({ error: "Die KI ist gerade stark ausgelastet oder das Tageskontingent ist erreicht. Bitte später erneut versuchen." });
     return;
   }
 

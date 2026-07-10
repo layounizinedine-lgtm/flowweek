@@ -26,7 +26,10 @@ FlowWeek ist ein sprachgesteuerter Wochenplaner: Woche frei einsprechen, erkannt
    - `ANTHROPIC_API_KEY` (erforderlich)
    - `ALLOWED_ORIGINS` – kommagetrennte Origin-Allowlist, z. B. `https://layounizinedine-lgtm.github.io`
    - `ANTHROPIC_MODEL` (optional, Standard: `claude-opus-4-8`)
-   - `RATE_LIMIT_PER_MINUTE` (optional, Standard: 20)
+   - `RATE_LIMIT_PER_MINUTE` (optional, Standard: 10 pro IP)
+   - `GLOBAL_LIMIT_PER_MINUTE` / `GLOBAL_LIMIT_PER_DAY` (optional, Standard: 30/Minute und 300/Tag über alle Nutzer – Kostendeckel)
+
+   Zusätzlich empfohlen: ein monatliches Spend-Limit in der Anthropic Console (Settings → Limits) als hartes Budget.
 3. **Cloud-Sync (optional)**: `supabase/flowweek_kv_rls.sql` im Supabase-SQL-Editor ausführen, dann `SUPABASE_URL` und `SUPABASE_ANON_KEY` in `flowweek.html` (CONFIG) eintragen.
 
 Details zu Sicherheit und Datenschutz: [SECURITY.md](SECURITY.md).
@@ -54,6 +57,7 @@ Getestet werden Datumsberechnung (inkl. Jahreswechsel und Sommerzeit), relative 
 - Backend: veraltetes Standardmodell `claude-3-5-sonnet-latest` (abgeschaltet) durch `claude-opus-4-8` ersetzt – KI-Funktionen waren dadurch komplett ausgefallen.
 - Verständlichere Fehlermeldungen bei Mikrofon-/Aufnahmefehlern und leerer Aufnahme.
 - Launch: Favicon, Meta-/Open-Graph-Daten, `index.html`-Weiterleitung, automatisierte Tests, README.
+- Sicherheit: KI-Proxy verlangt jetzt eine erlaubte Origin (403 für Skript-Zugriffe), globales Minuten- und Tageslimit als Kostendeckel zusätzlich zum Pro-IP-Limit; Supabase-RLS live verifiziert.
 
 ### 1.0.0
 - Erste Version: Diktat, Wochenplaner, KI-Analyse, Supabase-Sync, Vercel-Proxy.
