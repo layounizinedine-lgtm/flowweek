@@ -6,6 +6,12 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://flowweek-one.vercel.app https://pcdlqtcbpyvjdziqbrfk.supabase.co wss://pcdlqtcbpyvjdziqbrfk.supabase.co;">
 <title>FlowWeek – Sprechen. Planen. Besser werden.</title>
+<meta name="description" content="FlowWeek ist dein sprachgesteuerter Wochenplaner: Woche einsprechen, Aufgaben prüfen und bestätigen, Fortschritt abhaken – mit KI-Politur und Wochenanalyse.">
+<meta name="theme-color" content="#0F1218">
+<meta property="og:title" content="FlowWeek – Sprechen. Planen. Besser werden.">
+<meta property="og:description" content="Sprachgesteuerter Wochenplaner mit Diktat, KI-Politur und Wochenanalyse.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230F1218'/%3E%3Cpath d='M16 6a4 4 0 0 0-4 4v7a4 4 0 0 0 8 0v-7a4 4 0 0 0-4-4z' fill='%23FFB454'/%3E%3Cpath d='M8 15a8 8 0 0 0 16 0M16 23v4' stroke='%235EA2FF' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -225,6 +231,15 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
 .accountbar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 .accountbar b{color:var(--text)}
 .accountbar button{color:var(--red);font-weight:600;font-size:12px}
+
+/* ---------- Sprach-Vorschau ---------- */
+.preview-day{margin-bottom:10px}
+.pv-dayname{font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;color:var(--blue);margin-bottom:6px}
+.preview-row{display:grid;grid-template-columns:auto 86px 1fr 92px;gap:6px;align-items:center;margin-bottom:6px}
+.preview-row input,.preview-row select{padding:7px 8px;font-size:13px}
+.preview-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
+.pv-dup{grid-column:2/-1;font-size:11.5px;color:var(--muted);margin-top:-2px}
+@media(max-width:520px){ .preview-row{grid-template-columns:auto 86px 1fr} .preview-row select{grid-column:2/-1} }
 </style>
 </head>
 <body>
@@ -243,6 +258,17 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
       <button class="btn amber" id="authSubmit">Anmelden</button>
     </div>
     <div class="guestlink">oder <button id="authGuest">als Gast fortfahren (nur dieses Gerät)</button></div>
+  </div>
+</div>
+<div class="authmask" id="parseMask" style="display:none">
+  <div class="authcard" style="max-width:480px">
+    <div class="eyebrow">Ich habe Folgendes verstanden</div>
+    <div class="hint" id="parseWeekHint" style="margin:4px 0 12px"></div>
+    <div id="parseList" style="max-height:52vh;overflow:auto"></div>
+    <div class="btnrow" style="margin-top:14px">
+      <button class="btn amber" id="parseConfirm">Eintragen</button>
+      <button class="btn ghost" id="parseCancel">Verwerfen</button>
+    </div>
   </div>
 </div>
 <div class="app">
@@ -333,7 +359,7 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:12px">
         <button class="btn blue" id="weekMicBtn" style="flex-shrink:0">🎙️ Woche einsprechen</button>
-        <p class="hint">Sprich frei: „Montag um 9 Mathe lernen, Dienstag 18 Uhr Fitness, Mittwochabend Familie …“ – die KI trägt alles ein.</p>
+        <p class="hint">Sprich frei: „Montag um 9 Mathe lernen, morgen 18 Uhr Fitness, Mittwochabend Familie …“ – du siehst erst eine Vorschau und bestätigst dann.</p>
       </div>
       <div class="hint" id="weekMicStatus" style="margin-top:8px;display:none"></div>
     </div>
@@ -394,6 +420,9 @@ const CONFIG = {
   SUPABASE_URL: "https://pcdlqtcbpyvjdziqbrfk.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjZGxxdGNicHl2amR6aXFicmZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMTMwNDMsImV4cCI6MjA5ODY4OTA0M30.ffBAnZVUqo8_7i-0Q3VkMpI5NTGM2YcLsHA3MJaxtvM"
 };
+/* ===== FlowParse: pure Hilfsfunktionen (DOM-frei) =====
+   Dieser Block wird von test/parse-core.test.mjs extrahiert und getestet.
+   Hier darf kein document/window-Zugriff stehen. */
 const LIMITS = {
   TEXT: 12000,
   COMMAND: 1000,
@@ -405,6 +434,167 @@ const LIMITS = {
   TASK_TITLE: 120,
   TASK_NOTES: 140
 };
+function cleanText(s, max = LIMITS.TEXT){
+  return String(s || "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").slice(0, max);
+}
+function parseJsonLoose(text){
+  const clean = cleanText(text, 20000).replace(/```json|```/g,"").trim();
+  const iObj = clean.indexOf("{"), iArr = clean.indexOf("[");
+  const start = (iObj === -1) ? iArr : (iArr === -1) ? iObj : Math.min(iObj, iArr);
+  const end = Math.max(clean.lastIndexOf("}"), clean.lastIndexOf("]"));
+  if(start === -1 || end === -1) throw new Error("Kein JSON gefunden");
+  const parsed = JSON.parse(clean.slice(start, end+1));
+  if(parsed && typeof parsed === "object") return parsed;
+  throw new Error("JSON-Struktur nicht verstanden");
+}
+/* ---- Lokale Selbstkorrektur (ohne KI) ----
+   Erkennt das Muster "<Artikel/Possessiv + Wort> (äh/eh) nein(,warte) <Artikel/Possessiv + Wort>"
+   und behält nur die korrigierte Version. Beispiel:
+   "mit meinem Vater eh nein meiner Mutter" -> "mit meiner Mutter"
+   Bewusst konservativ: greift nur, wenn beide Seiten Artikel/Possessiv + Wort sind. */
+const ARTIKEL = "(?:mein\\w*|dein\\w*|sein\\w*|ihr\\w*|unser\\w*|euer\\w*|eure\\w*|der|die|das|dem|den|des|ein|eine|einem|einen|einer|eines|im|am|zur|zum)";
+const KORREKTUR_MARKER = "(?:\\s*,?\\s*(?:äh|eh|ähm|ähh|ne)?\\s*,?\\s*nein\\s*,?\\s*(?:warte)?\\s*,?\\s*|\\s*,?\\s*ich\\s+meine\\s*,?\\s*|\\s*,?\\s*quatsch\\s*,?\\s*)";
+const SELF_CORRECT_RX = new RegExp("\\b("+ARTIKEL+"\\s+\\S+)"+KORREKTUR_MARKER+"("+ARTIKEL+"\\s+\\S+)", "gi");
+function applySelfCorrections(text){
+  let out = String(text || "");
+  let prev;
+  do{ prev = out; out = out.replace(SELF_CORRECT_RX, "$2"); }while(out !== prev);
+  return out.replace(/\s{2,}/g, " ");
+}
+function hasCorrectionMarker(text){
+  // Kein \b vor Umlauten (ä zählt in JS-Regex nicht als Wortzeichen)
+  return /(?:^|[\s,])(?:äh|eh|ähm)\s*,?\s*nein\b|\bnein\s*,?\s*warte\b|\bich\s+meine\b|\bquatsch\b/i.test(String(text||""));
+}
+/* ---- Datum / Woche ---- */
+function getMonday(d){
+  const x = new Date(d); const day = (x.getDay()+6)%7;
+  x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x;
+}
+/* Lokales Datum statt toISOString() (UTC): sonst wird Montag 00:00 in
+   Zeitzonen östlich von UTC unter dem Sonntags-Datum gespeichert. */
+function localDateKey(d){
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function minutesOf(time){
+  const m = String(time||"").match(/^(\d{2}):(\d{2})$/);
+  return m ? (+m[1])*60 + (+m[2]) : null;
+}
+/* ---- Lokaler Fallback-Parser für "Woche einsprechen" ----
+   1) Text in Tages-Segmente teilen (Montag …, morgen …, übermorgen …)
+   2) Jedes Tages-Segment an JEDER Uhrzeit-Erwähnung weiter aufteilen,
+      damit "um 12 lernen dann um 15 Uhr Training" ZWEI Aufgaben ergibt.
+   Wichtig: konsumierendes Pattern statt Lookahead-Split, damit
+   "um 15 Uhr" nur EINEN Schnittpunkt erzeugt (nicht zwei überlappende). */
+const TIME_TOKEN_SRC = "\\b(?:um|gegen)\\s+\\d{1,2}(?:[:.]\\d{2})?(?:\\s*uhr)?\\b|\\b\\d{1,2}(?:[:.]\\d{2})?\\s*uhr\\b|\\b(?:morgens|vormittags|mittags|nachmittags|abends|nachts)\\b";
+function splitTimeChunks(segment){
+  const rx = new RegExp(TIME_TOKEN_SRC, "gi");
+  const starts = [];
+  let m;
+  while((m = rx.exec(segment)) !== null){ starts.push(m.index); }
+  if(!starts.length) return [segment];
+  const chunks = [];
+  if(starts[0] > 0){
+    const head = segment.slice(0, starts[0]).trim();
+    if(head) chunks.push(head);
+  }
+  starts.forEach((s, i)=>{
+    const e = (i+1 < starts.length) ? starts[i+1] : segment.length;
+    const c = segment.slice(s, e).trim();
+    if(c) chunks.push(c);
+  });
+  return chunks;
+}
+const PARSE_DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
+function parseWeekSpeechLocal(text, todayIdx){
+  if(typeof todayIdx !== "number") todayIdx = (new Date().getDay()+6)%7;
+  const dayMap = [
+    ["mon", /\b(montags?|mo)\b/i], ["tue", /\b(dienstags?|di)\b/i], ["wed", /\b(mittwochs?|mi)\b/i],
+    ["thu", /\b(donnerstags?)\b/i], ["fri", /\b(freitags?|fr)\b/i], ["sat", /\b(samstags?|sa)\b/i],
+    ["sun", /\b(sonntags?)\b/i],
+    /* Relative Angaben, bezogen auf den heutigen Wochentag. Läuft "morgen"/
+       "übermorgen" über den Sonntag hinaus, landet der Eintrag am passenden
+       Wochentag der angezeigten Woche – die Vorschau macht das sichtbar. */
+    [PARSE_DAYS[todayIdx], /\bheute\b/i],
+    [PARSE_DAYS[(todayIdx+1)%7], /\bmorgen\b(?!s)/i],
+    /* Kein \b vor "ü": Umlaute zählen in JS-Regex nicht als Wortzeichen */
+    [PARSE_DAYS[(todayIdx+2)%7], /(?:^|[\s,])(übermorgen)\b/i],
+    ["sat", /\b(?:am\s+)?wochenende\b/i]
+    /* Kurzformen "do" und "so" bewusst entfernt: kollidieren mit den
+       Alltagswörtern "do(ch)"-Fragmenten und vor allem "so" ("so gegen 11"). */
+  ];
+  const normalized = String(text||"").replace(/[.,;]+/g, " ").replace(/\s+/g, " ").trim();
+  const hits = [];
+  for(const [day, rx] of dayMap){
+    const m = normalized.match(rx);
+    if(m) hits.push({day, index:m.index, label:m[0]});
+  }
+  /* "übermorgen" enthält "morgen": überlappende Treffer am selben Index aussortieren */
+  hits.sort((a,b)=>a.index-b.index || b.label.length-a.label.length);
+  const filtered = hits.filter((h,i)=> !hits.slice(0,i).some(p=> h.index >= p.index && h.index < p.index + p.label.length));
+  const tasks = [];
+  filtered.forEach((hit, i)=>{
+    const next = filtered[i+1] ? filtered[i+1].index : normalized.length;
+    const segment = normalized.slice(hit.index + hit.label.length, next).trim();
+    for(const chunk of splitTimeChunks(segment)){
+      const time = extractTime(chunk);
+      let title = chunk
+        .replace(/\b(?:um|gegen)\s+\d{1,2}(?:[:.]\d{2})?(?:\s*uhr)?\b/gi, " ")
+        .replace(/\b\d{1,2}(?:[:.]\d{2})?\s*uhr\b/gi, " ")
+        .replace(/\b(morgens|vormittags|mittags|nachmittags|abends|nachts)\b/gi, " ")
+        .replace(/\bca\.?\s*/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      // Führende/abschließende Verbindungswörter entfernen
+      let prev;
+      do{
+        prev = title;
+        title = title.replace(/^(dann|danach|und|anschliessend|anschließend|später|noch|ich|werde|will|muss|mache|am)\s+/i, "")
+                     .replace(/\s+(dann|danach|und|anschliessend|anschließend|ich|noch)$/i, "")
+                     .trim();
+      }while(title !== prev);
+      if(!title) continue;
+      tasks.push({day: hit.day, time, title, category: inferCategory(title), priority: inferPriority(title), duration: inferDuration(title)});
+    }
+  });
+  return tasks;
+}
+function extractTime(text){
+  const daypart = text.match(/\b(morgens|vormittags|mittags|nachmittags|abends|nachts)\b/i);
+  if(daypart){
+    return {morgens:"08:00", vormittags:"10:00", mittags:"12:00", nachmittags:"15:00", abends:"19:00", nachts:"21:00"}[daypart[1].toLowerCase()];
+  }
+  // Nur echte Uhrzeiten: "um/gegen 12", "15 Uhr", "12:30" – NICHT "30 min" oder "90 Minuten"
+  let m = text.match(/\b(?:um|gegen)\s+(\d{1,2})(?:[:.](\d{2}))?(?:\s*uhr)?\b/i);
+  if(!m) m = text.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*uhr\b/i);
+  if(!m) m = text.match(/\b(\d{1,2}):(\d{2})\b/); // nackte "12:30" (nur Doppelpunkt, kein Datum)
+  if(!m) return "";
+  const h = Math.max(0, Math.min(23, parseInt(m[1],10)));
+  const min = m[2] ? Math.max(0, Math.min(59, parseInt(m[2],10))) : 0;
+  return String(h).padStart(2,"0")+":"+String(min).padStart(2,"0");
+}
+function inferCategory(text){
+  if(/\b(fokus|deep work|konzentr\w*|wichtigste|top\s*3|projektarbeit)\b/i.test(text)) return "Fokus";
+  if(/\b(lern\w*|schule|uni|mathe|deutsch|englisch|vokabel\w*|prüfung\w*|klausur\w*|hausaufgabe\w*|lesen|studier\w*|üben?)\b/i.test(text)) return "Lernen";
+  if(/\b(job|arbeit\w*|meeting\w*|kunde\w*|projekt\w*|büro|call\w*|termin\w*)\b/i.test(text)) return "Arbeit";
+  if(/\b(sport|fitness|training\w*|trainier\w*|laufen|joggen|gym|fu(ß|ss)ball|schwimm\w*|workout)\b/i.test(text)) return "Sport";
+  if(/\b(pause\w*|erhol\w*|schlaf\w*|ruhe|spaziergang|regeneration|abschalten|frei)\b/i.test(text)) return "Erholung";
+  return "Privat";
+}
+function inferPriority(text){
+  if(/\b(wichtig\w*|dringend|top|muss|deadline|prüfung\w*|klausur\w*)\b/i.test(text)) return "high";
+  if(/\b(sollte|besser|priorität|prio)\b/i.test(text)) return "medium";
+  if(/\b(optional|vielleicht|wenn zeit)\b/i.test(text)) return "low";
+  return "normal";
+}
+function inferDuration(text){
+  const m = text.match(/\b(\d{1,3})\s*(min|minute|minuten|h|std|stunde|stunden)\b/i);
+  if(!m) return /\b(fokus|deep work|lern\w*|training\w*|trainier\w*)\b/i.test(text) ? 60 : 30;
+  const n = parseInt(m[1],10);
+  // Erst Stunden in Minuten umrechnen, dann klemmen – sonst wird "2 Stunden" zu 300
+  const minutes = /^h|^std|^stunde/i.test(m[2]) ? n*60 : n;
+  return Math.max(5, Math.min(480, minutes));
+}
+/* ===== /FlowParse ===== */
 function backendConfigured(){ return CONFIG.BACKEND_URL && !CONFIG.BACKEND_URL.includes("DEIN-"); }
 function supabaseConfigured(){
   return CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes("DEIN-") &&
@@ -462,9 +652,6 @@ function toast(msg){
   clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("show"), 2600);
 }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function cleanText(s, max = LIMITS.TEXT){
-  return String(s || "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").slice(0, max);
-}
 function setTranscriptText(text){
   finalBuffer = cleanText(text);
   renderTranscript("");
@@ -505,16 +692,6 @@ async function callClaude(userPrompt, systemPrompt){
     return data.content.filter(b=>b.type==="text" || typeof b.text === "string").map(b=>b.text || "").join("\n").trim();
   }
   throw new Error("Backend-Antwort nicht verstanden.");
-}
-function parseJsonLoose(text){
-  const clean = cleanText(text, 20000).replace(/```json|```/g,"").trim();
-  const iObj = clean.indexOf("{"), iArr = clean.indexOf("[");
-  const start = (iObj === -1) ? iArr : (iArr === -1) ? iObj : Math.min(iObj, iArr);
-  const end = Math.max(clean.lastIndexOf("}"), clean.lastIndexOf("]"));
-  if(start === -1 || end === -1) throw new Error("Kein JSON gefunden");
-  const parsed = JSON.parse(clean.slice(start, end+1));
-  if(parsed && typeof parsed === "object") return parsed;
-  throw new Error("JSON-Struktur nicht verstanden");
 }
 async function aiBusy(btn, fn){
   const orig = btn.innerHTML;
@@ -617,24 +794,6 @@ async function startListening(){
   listening = true;
   $("micStage").classList.add("listening");
   $("micLabel").textContent = "Ich höre zu … (tippen zum Stoppen)";
-}
-/* ---- Lokale Selbstkorrektur (ohne KI) ----
-   Erkennt das Muster "<Artikel/Possessiv + Wort> (äh/eh) nein(,warte) <Artikel/Possessiv + Wort>"
-   und behält nur die korrigierte Version. Beispiel:
-   "mit meinem Vater eh nein meiner Mutter" -> "mit meiner Mutter"
-   Bewusst konservativ: greift nur, wenn beide Seiten Artikel/Possessiv + Wort sind. */
-const ARTIKEL = "(?:mein\\w*|dein\\w*|sein\\w*|ihr\\w*|unser\\w*|euer\\w*|eure\\w*|der|die|das|dem|den|des|ein|eine|einem|einen|einer|eines|im|am|zur|zum)";
-const KORREKTUR_MARKER = "(?:\\s*,?\\s*(?:äh|eh|ähm|ähh|ne)?\\s*,?\\s*nein\\s*,?\\s*(?:warte)?\\s*,?\\s*|\\s*,?\\s*ich\\s+meine\\s*,?\\s*|\\s*,?\\s*quatsch\\s*,?\\s*)";
-const SELF_CORRECT_RX = new RegExp("\\b("+ARTIKEL+"\\s+\\S+)"+KORREKTUR_MARKER+"("+ARTIKEL+"\\s+\\S+)", "gi");
-function applySelfCorrections(text){
-  let out = String(text || "");
-  let prev;
-  do{ prev = out; out = out.replace(SELF_CORRECT_RX, "$2"); }while(out !== prev);
-  return out.replace(/\s{2,}/g, " ");
-}
-function hasCorrectionMarker(text){
-  // Kein \b vor Umlauten (ä zählt in JS-Regex nicht als Wortzeichen)
-  return /(?:^|[\s,])(?:äh|eh|ähm)\s*,?\s*nein\b|\bnein\s*,?\s*warte\b|\bich\s+meine\b|\bquatsch\b/i.test(String(text||""));
 }
 
 async function stopListening(){
@@ -772,15 +931,6 @@ let currentMonday = getMonday(new Date());
 let week = emptyWeek();
 
 function emptyWeek(){ const w={}; DAYS.forEach(d=>w[d]=[]); return w; }
-function getMonday(d){
-  const x = new Date(d); const day = (x.getDay()+6)%7;
-  x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x;
-}
-/* Lokales Datum statt toISOString() (UTC): sonst wird Montag 00:00 in
-   Zeitzonen östlich von UTC unter dem Sonntags-Datum gespeichert. */
-function localDateKey(d){
-  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-}
 function weekKey(mon){ return "week:"+localDateKey(mon); }
 /* Alte, per toISOString() erzeugte Keys einmalig migrieren */
 async function migrateWeekKey(mon){
@@ -825,10 +975,6 @@ function normalizeTask(t){
   };
 }
 function allWeekTasks(){ return DAYS.flatMap(day=>week[day].map(t=>({day, ...normalizeTask(t)}))); }
-function minutesOf(time){
-  const m = String(time||"").match(/^(\d{2}):(\d{2})$/);
-  return m ? (+m[1])*60 + (+m[2]) : null;
-}
 function dayLoad(day){
   return week[day].reduce((sum,t)=>sum+(Number(t.duration)||30),0);
 }
@@ -1031,9 +1177,9 @@ $("weekMicBtn").addEventListener("click", ()=>{
   if(!speechSupported()){ toast("Spracherkennung nicht verfügbar in diesem Browser."); return; }
   weekBuffer = "";
   weekRecog = new SR();
-  weekRecog.lang = "de-DE"; weekRecog.continuous = true; weekRecog.interimResults = true;
+  weekRecog.lang = $("langSel").value || "de-DE"; weekRecog.continuous = true; weekRecog.interimResults = true;
   weekListening = true;
-  $("weekMicBtn").innerHTML = "⏹ Fertig – eintragen";
+  $("weekMicBtn").innerHTML = "⏹ Fertig – prüfen";
   const st = $("weekMicStatus"); st.style.display = "block"; st.textContent = "Ich höre zu …";
   weekRecog.onresult = ev=>{
     let interim = "";
@@ -1047,36 +1193,51 @@ $("weekMicBtn").addEventListener("click", ()=>{
     if(!weekListening) return;
     weekListening = false;
     $("weekMicBtn").innerHTML = "🎙️ Woche einsprechen";
-    if(!weekBuffer.trim()){ st.style.display="none"; return; }
-    st.textContent = "KI trägt deine Termine ein …";
+    if(!weekBuffer.trim()){
+      st.style.display="none";
+      toast("Ich habe nichts verstanden. Bitte sprich noch einmal – es wurde nichts gespeichert.");
+      return;
+    }
+    st.textContent = "Deine Planung wird gelesen …";
     await aiBusy($("weekMicBtn"), async ()=>{
       await parseWeekSpeech(weekBuffer.trim());
       st.style.display = "none";
     });
   };
-  weekRecog.onerror = ()=>{ weekListening=false; $("weekMicBtn").innerHTML="🎙️ Woche einsprechen"; st.style.display="none"; };
+  weekRecog.onerror = (ev)=>{
+    weekListening=false; $("weekMicBtn").innerHTML="🎙️ Woche einsprechen"; st.style.display="none";
+    if(ev && (ev.error === "not-allowed" || ev.error === "service-not-allowed")){
+      toast("Mikrofon-Zugriff blockiert. Erlaube das Mikrofon in den Browser-Einstellungen und versuche es erneut.");
+    }else if(ev && ev.error !== "no-speech" && ev.error !== "aborted"){
+      toast("Die Aufnahme wurde unterbrochen. Bitte versuche es erneut – es wurde nichts gespeichert.");
+    }
+  };
   try{ weekRecog.start(); }catch(e){}
 });
 async function parseWeekSpeech(text){
   text = cleanText(text);
-  const sys = 'Du wandelst frei gesprochene Wochenplanung in JSON um. Tage: mon,tue,wed,thu,fri,sat,sun. Kategorien: genau eine aus ["Fokus","Lernen","Arbeit","Sport","Privat","Erholung"] (Fokus für Deep Work/Top-Prioritäten, Lernen für Schule/Uni/Vokabeln/Üben, Sport für Fitness/Training, Erholung für Pausen/Schlaf/Regeneration, Privat für Familie/Freunde/Erledigungen). "time" im Format "HH:MM" oder "" wenn keine Uhrzeit genannt ("abends"≈"19:00", "morgens"≈"08:00", "mittags"≈"12:00", "nachmittags"≈"15:00"). "priority" ist "high", "medium", "normal" oder "low". "duration" ist Minuten, realistisch schätzen. WICHTIG: Wenn an einem Tag mehrere Uhrzeiten oder Aktivitäten genannt werden ("dann", "danach", "und um X Uhr"), erzeuge für JEDE Aktivität einen EIGENEN Eintrag mit ihrer EIGENEN Uhrzeit – niemals zusammenfassen. Beispiel: "Donnerstag um 12 lerne ich, dann um 15 Uhr trainiere ich" ergibt ZWEI Einträge: [{"day":"thu","time":"12:00","title":"Lernen","category":"Lernen","priority":"normal","duration":60},{"day":"thu","time":"15:00","title":"Training","category":"Sport","priority":"normal","duration":60}]. Antworte NUR mit einem JSON-Array wie: [{"day":"mon","time":"09:00","title":"Mathe lernen","category":"Lernen","priority":"high","duration":60}]';
+  const today = new Date();
+  const todayIdx = (today.getDay()+6)%7;
+  const weekDates = DAYS.map((d,i)=>{ const x = new Date(currentMonday); x.setDate(x.getDate()+i); return d+" = "+localDateKey(x); }).join(", ");
+  const dateContext = "Heute ist "+DAYNAMES[DAYS[todayIdx]]+", der "+localDateKey(today)+". Geplante Woche: "+weekDates+". "+
+    'Relative Angaben ("heute", "morgen", "übermorgen", "am Wochenende") anhand des heutigen Datums dem passenden Wochentag zuordnen. Monats- und Jahreswechsel korrekt berücksichtigen.';
+  const sys = 'Du wandelst frei gesprochene Wochenplanung in JSON um. Tage: mon,tue,wed,thu,fri,sat,sun. Kategorien: genau eine aus ["Fokus","Lernen","Arbeit","Sport","Privat","Erholung"] (Fokus für Deep Work/Top-Prioritäten, Lernen für Schule/Uni/Vokabeln/Üben, Sport für Fitness/Training, Erholung für Pausen/Schlaf/Regeneration, Privat für Familie/Freunde/Erledigungen). "time" im Format "HH:MM" oder "" wenn keine Uhrzeit genannt ("abends"≈"19:00", "morgens"≈"08:00", "mittags"≈"12:00", "nachmittags"≈"15:00"). "priority" ist "high", "medium", "normal" oder "low". "duration" ist Minuten, realistisch schätzen. WICHTIG: Wenn an einem Tag mehrere Uhrzeiten oder Aktivitäten genannt werden ("dann", "danach", "und um X Uhr"), erzeuge für JEDE Aktivität einen EIGENEN Eintrag mit ihrer EIGENEN Uhrzeit – niemals zusammenfassen. Beispiel: "Donnerstag um 12 lerne ich, dann um 15 Uhr trainiere ich" ergibt ZWEI Einträge: [{"day":"thu","time":"12:00","title":"Lernen","category":"Lernen","priority":"normal","duration":60},{"day":"thu","time":"15:00","title":"Training","category":"Sport","priority":"normal","duration":60}]. KORREKTUREN: Wenn der Sprecher sich selbst korrigiert ("Dienstag 15 Uhr – nein, mach daraus Mittwoch 16 Uhr"), übernimm NUR die letzte, korrigierte Version und erzeuge KEINEN Eintrag für die verworfene. ERFINDE NICHTS: Erzeuge nur Einträge, die der Sprecher wirklich genannt hat, keine Duplikate. Antworte NUR mit einem JSON-Array wie: [{"day":"mon","time":"09:00","title":"Mathe lernen","category":"Lernen","priority":"high","duration":60}]';
   let tasks;
   try{
-    const result = await callClaude("Gesprochene Planung: "+text, sys);
+    const result = await callClaude(dateContext+"\n\nGesprochene Planung: "+text, sys);
     tasks = parseJsonLoose(result);
     if(!Array.isArray(tasks) || !tasks.length || !tasks.some(t=>DAYS.includes(t.day))){
       throw new Error("KI-Antwort ohne verwertbare Aufgaben");
     }
   }catch(e){
     console.warn("KI-Planung fehlgeschlagen, nutze lokalen Parser:", e);
-    tasks = parseWeekSpeechLocal(text);
-    toast("KI offline: einfache lokale Erkennung genutzt.");
+    tasks = parseWeekSpeechLocal(applySelfCorrections(text), todayIdx);
+    if(Array.isArray(tasks) && tasks.length) toast("KI gerade nicht erreichbar – einfache lokale Erkennung genutzt. Bitte Vorschau genau prüfen.");
   }
-  if(!Array.isArray(tasks) || !tasks.length) throw new Error("Keine Aufgaben erkannt");
-  let count = 0;
-  for(const t of tasks){
+  const items = [];
+  if(Array.isArray(tasks)) for(const t of tasks){
     if(!DAYS.includes(t.day) || !t.title) continue;
-    week[t.day].push(normalizeTask({
+    const task = normalizeTask({
       id:newTaskId(),
       time: (t.time||"").match(/^\d{2}:\d{2}$/) ? t.time : "",
       title: cleanText(t.title, LIMITS.TASK_TITLE),
@@ -1084,112 +1245,71 @@ async function parseWeekSpeech(text){
       priority: PRIOS.includes(t.priority) ? t.priority : "normal",
       duration: Number(t.duration) || 30,
       done:false
-    }));
-    count++;
+    });
+    // Doppelte innerhalb derselben Aufnahme überspringen
+    if(items.some(x=>x.day===t.day && x.task.title.toLowerCase()===task.title.toLowerCase() && x.task.time===task.time)) continue;
+    items.push({day:t.day, task, duplicate: isDuplicateTask(t.day, task.title, task.time)});
   }
-  await saveWeek(); renderWeek();
-  toast(count+" Termine eingetragen ✅");
+  if(!items.length) throw new Error("Ich konnte keine Aufgaben erkennen. Sag z. B. „Montag um 9 Mathe lernen“. Es wurde nichts gespeichert.");
+  showParsePreview(items);
 }
-/* Lokaler Fallback-Parser:
-   1) Text in Tages-Segmente teilen (Montag …, Dienstag …)
-   2) Jedes Tages-Segment an JEDER Uhrzeit-Erwähnung weiter aufteilen,
-      damit "um 12 lernen dann um 15 Uhr Training" ZWEI Aufgaben ergibt.
-   Wichtig: konsumierendes Pattern statt Lookahead-Split, damit
-   "um 15 Uhr" nur EINEN Schnittpunkt erzeugt (nicht zwei überlappende). */
-const TIME_TOKEN_SRC = "\\b(?:um|gegen)\\s+\\d{1,2}(?:[:.]\\d{2})?(?:\\s*uhr)?\\b|\\b\\d{1,2}(?:[:.]\\d{2})?\\s*uhr\\b|\\b(?:morgens|vormittags|mittags|nachmittags|abends|nachts)\\b";
-function splitTimeChunks(segment){
-  const rx = new RegExp(TIME_TOKEN_SRC, "gi");
-  const starts = [];
-  let m;
-  while((m = rx.exec(segment)) !== null){ starts.push(m.index); }
-  if(!starts.length) return [segment];
-  const chunks = [];
-  if(starts[0] > 0){
-    const head = segment.slice(0, starts[0]).trim();
-    if(head) chunks.push(head);
+
+/* ---- Vorschau: erst bestätigen, dann speichern ---- */
+let pendingParsed = [];
+function isDuplicateTask(day, title, time){
+  const key = String(title||"").trim().toLowerCase();
+  return week[day].some(t=>{ const n = normalizeTask(t); return n.title.trim().toLowerCase() === key && n.time === (time||""); });
+}
+function showParsePreview(items){
+  pendingParsed = items;
+  const end = new Date(currentMonday); end.setDate(end.getDate()+6);
+  $("parseWeekHint").textContent = "Woche "+fmtDate(currentMonday)+" – "+fmtDate(end)+" Passe die Einträge an oder wähle sie ab. Gespeichert wird erst, wenn du auf „Eintragen“ tippst.";
+  $("parseList").innerHTML = DAYS.filter(d=>items.some(x=>x.day===d)).map(d=>{
+    const rows = items.map((x,idx)=>({x,idx})).filter(o=>o.x.day===d).map(o=>{
+      const t = o.x.task;
+      return '<div class="preview-row">'+
+        '<input type="checkbox" data-pv-on="'+o.idx+'"'+(o.x.duplicate?'':' checked')+' aria-label="Eintrag übernehmen">'+
+        '<input type="time" value="'+esc(t.time)+'" data-pv-time="'+o.idx+'" aria-label="Uhrzeit">'+
+        '<input value="'+esc(t.title)+'" maxlength="'+LIMITS.TASK_TITLE+'" data-pv-title="'+o.idx+'" aria-label="Titel">'+
+        '<select data-pv-cat="'+o.idx+'" aria-label="Kategorie">'+CATS.map(c=>'<option'+(c===t.cat?' selected':'')+'>'+c+'</option>').join("")+'</select>'+
+        (o.x.duplicate?'<div class="pv-dup">Steht schon so im Plan – nur bei Bedarf anhaken.</div>':'')+
+      '</div>';
+    }).join("");
+    return '<div class="preview-day"><div class="pv-dayname">'+DAYNAMES[d]+'</div>'+rows+'</div>';
+  }).join("");
+  $("parseMask").style.display = "flex";
+}
+$("parseCancel").addEventListener("click", ()=>{
+  pendingParsed = []; $("parseMask").style.display = "none";
+  toast("Verworfen – es wurde nichts gespeichert.");
+});
+$("parseConfirm").addEventListener("click", async ()=>{
+  const btn = $("parseConfirm");
+  if(btn.disabled) return;
+  btn.disabled = true;
+  try{
+    let count = 0;
+    pendingParsed.forEach((x, idx)=>{
+      const on = document.querySelector('[data-pv-on="'+idx+'"]');
+      if(!on || !on.checked) return;
+      const titleEl = document.querySelector('[data-pv-title="'+idx+'"]');
+      const timeEl = document.querySelector('[data-pv-time="'+idx+'"]');
+      const catEl = document.querySelector('[data-pv-cat="'+idx+'"]');
+      const title = cleanText(titleEl ? titleEl.value : x.task.title, LIMITS.TASK_TITLE).trim();
+      if(!title) return;
+      week[x.day].push(normalizeTask({ ...x.task, id:newTaskId(), title,
+        time: timeEl ? timeEl.value : x.task.time,
+        cat: catEl ? catEl.value : x.task.cat }));
+      count++;
+    });
+    pendingParsed = []; $("parseMask").style.display = "none";
+    if(!count){ toast("Kein Eintrag ausgewählt – es wurde nichts gespeichert."); return; }
+    await saveWeek(); renderWeek();
+    toast(count+" Einträge eingetragen ✅");
+  }finally{
+    btn.disabled = false;
   }
-  starts.forEach((s, i)=>{
-    const e = (i+1 < starts.length) ? starts[i+1] : segment.length;
-    const c = segment.slice(s, e).trim();
-    if(c) chunks.push(c);
-  });
-  return chunks;
-}
-function parseWeekSpeechLocal(text){
-  const dayMap = [
-    ["mon", /\b(montags?|mo)\b/i], ["tue", /\b(dienstags?|di)\b/i], ["wed", /\b(mittwochs?|mi)\b/i],
-    ["thu", /\b(donnerstags?)\b/i], ["fri", /\b(freitags?|fr)\b/i], ["sat", /\b(samstags?|sa)\b/i],
-    ["sun", /\b(sonntags?)\b/i]
-    /* Kurzformen "do" und "so" bewusst entfernt: kollidieren mit den
-       Alltagswörtern "do(ch)"-Fragmenten und vor allem "so" ("so gegen 11"). */
-  ];
-  const normalized = text.replace(/[.,;]+/g, " ").replace(/\s+/g, " ").trim();
-  const hits = [];
-  for(const [day, rx] of dayMap){
-    const m = normalized.match(rx);
-    if(m) hits.push({day, index:m.index, label:m[0]});
-  }
-  hits.sort((a,b)=>a.index-b.index);
-  const tasks = [];
-  hits.forEach((hit, i)=>{
-    const next = hits[i+1] ? hits[i+1].index : normalized.length;
-    const segment = normalized.slice(hit.index + hit.label.length, next).trim();
-    for(const chunk of splitTimeChunks(segment)){
-      const time = extractTime(chunk);
-      let title = chunk
-        .replace(/\b(?:um|gegen)\s+\d{1,2}(?:[:.]\d{2})?(?:\s*uhr)?\b/gi, " ")
-        .replace(/\b\d{1,2}(?:[:.]\d{2})?\s*uhr\b/gi, " ")
-        .replace(/\b(morgens|vormittags|mittags|nachmittags|abends|nachts)\b/gi, " ")
-        .replace(/\bca\.?\s*/gi, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-      // Führende/abschließende Verbindungswörter entfernen
-      let prev;
-      do{
-        prev = title;
-        title = title.replace(/^(dann|danach|und|anschliessend|anschließend|später|noch|ich|werde|will|muss|mache)\s+/i, "")
-                     .replace(/\s+(dann|danach|und|anschliessend|anschließend)$/i, "")
-                     .trim();
-      }while(title !== prev);
-      if(!title) continue;
-      tasks.push({day: hit.day, time, title, category: inferCategory(title), priority: inferPriority(title), duration: inferDuration(title)});
-    }
-  });
-  return tasks;
-}
-function extractTime(text){
-  const daypart = text.match(/\b(morgens|vormittags|mittags|nachmittags|abends|nachts)\b/i);
-  if(daypart){
-    return {morgens:"08:00", vormittags:"10:00", mittags:"12:00", nachmittags:"15:00", abends:"19:00", nachts:"21:00"}[daypart[1].toLowerCase()];
-  }
-  // Nur echte Uhrzeiten: "um/gegen 12", "15 Uhr", "12:30" – NICHT "30 min" oder "90 Minuten"
-  let m = text.match(/\b(?:um|gegen)\s+(\d{1,2})(?:[:.](\d{2}))?(?:\s*uhr)?\b/i);
-  if(!m) m = text.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*uhr\b/i);
-  if(!m) return "";
-  const h = Math.max(0, Math.min(23, parseInt(m[1],10)));
-  const min = m[2] ? Math.max(0, Math.min(59, parseInt(m[2],10))) : 0;
-  return String(h).padStart(2,"0")+":"+String(min).padStart(2,"0");
-}
-function inferCategory(text){
-  if(/\b(fokus|deep work|konzentr\w*|wichtigste|top\s*3|projektarbeit)\b/i.test(text)) return "Fokus";
-  if(/\b(lern\w*|schule|uni|mathe|deutsch|englisch|vokabel\w*|prüfung\w*|klausur\w*|hausaufgabe\w*|lesen|studier\w*|üben?)\b/i.test(text)) return "Lernen";
-  if(/\b(job|arbeit\w*|meeting\w*|kunde\w*|projekt\w*|büro|call\w*|termin\w*)\b/i.test(text)) return "Arbeit";
-  if(/\b(sport|fitness|training\w*|trainier\w*|laufen|joggen|gym|fu(ß|ss)ball|schwimm\w*|workout)\b/i.test(text)) return "Sport";
-  if(/\b(pause\w*|erhol\w*|schlaf\w*|ruhe|spaziergang|regeneration|abschalten|frei)\b/i.test(text)) return "Erholung";
-  return "Privat";
-}
-function inferPriority(text){
-  if(/\b(wichtig\w*|dringend|top|muss|deadline|prüfung\w*|klausur\w*)\b/i.test(text)) return "high";
-  if(/\b(sollte|besser|priorität|prio)\b/i.test(text)) return "medium";
-  if(/\b(optional|vielleicht|wenn zeit)\b/i.test(text)) return "low";
-  return "normal";
-}
-function inferDuration(text){
-  const m = text.match(/\b(\d{1,3})\s*(min|minute|minuten|h|std|stunde|stunden)\b/i);
-  if(!m) return /\b(fokus|deep work|lern\w*|training\w*|trainier\w*)\b/i.test(text) ? 60 : 30;
-  const n = Math.max(5, parseInt(m[1],10));
-  return /^h|^std|^stunde/i.test(m[2]) ? Math.min(480, n*60) : Math.min(480, n);
-}
+});
 
 /* ============================================================
    KI-WOCHENANALYSE

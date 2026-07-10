@@ -104,7 +104,8 @@ module.exports = async function handler(req, res) {
   }
 
   const payload = {
-    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest",
+    // claude-3-5-sonnet wurde 2025 abgeschaltet; aktuelles Standardmodell verwenden
+    model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
     max_tokens: Math.max(64, Math.min(Number(body.max_tokens) || 1000, 1600)),
     messages: safeMessages
   };
