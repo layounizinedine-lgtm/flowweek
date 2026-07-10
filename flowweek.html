@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://flowweek-one.vercel.app https://pcdlqtcbpyvjdziqbrfk.supabase.co wss://pcdlqtcbpyvjdziqbrfk.supabase.co;">
 <title>FlowWeek – Sprechen. Planen. Besser werden.</title>
@@ -238,7 +238,7 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
     </div>
     <div class="authform">
       <input type="email" id="authEmail" placeholder="E-Mail" autocomplete="email">
-      <input type="password" id="authPass" placeholder="Passwort" autocomplete="current-password">
+      <input type="password" id="authPass" placeholder="Passwort" autocomplete="current-password" minlength="8">
       <div class="autherr" id="authErr"></div>
       <button class="btn amber" id="authSubmit">Anmelden</button>
     </div>
@@ -438,7 +438,10 @@ const store = {
       try{
         const { error } = await sb.from("flowweek_kv").upsert({ user_id: currentUser.id, key, value: val, updated_at: new Date().toISOString() });
         if(error) throw error;
-      }catch(e){ console.error("Cloud-Set fehlgeschlagen:", e); }
+      }catch(e){
+        console.error("Cloud-Set fehlgeschlagen:", e);
+        toast("⚠️ Cloud-Sync fehlgeschlagen – Änderung nur lokal gespeichert.");
+      }
       this._localSet(key, val); // lokaler Cache bleibt immer aktuell (Offline-Fallback)
       return;
     }
@@ -491,7 +494,8 @@ async function callClaude(userPrompt, systemPrompt){
     clearTimeout(timeout);
   }
   const raw = await res.text();
-  if(!res.ok) throw new Error("KI-Dienst aktuell nicht verfügbar ("+res.status+").");
+  if(!res.ok){ updateAiStatus("KI offline"); throw new Error("KI-Dienst aktuell nicht verfügbar ("+res.status+")."); }
+  updateAiStatus(); // Aufruf erfolgreich -> Status wieder auf "KI bereit"
   const data = raw ? JSON.parse(raw) : {};
   if(typeof data.text === "string") return data.text.trim();
   if(typeof data.message === "string") return data.message.trim();
@@ -685,7 +689,7 @@ async function runCommand(){
   toast("Befehl ausgeführt ✅");
 }
 $("cmdRunBtn").addEventListener("click", ()=> aiBusy($("cmdRunBtn"), runCommand));
-$("cmdInput").addEventListener("keydown", e=>{ if(e.key==="Enter") aiBusy($("cmdRunBtn"), runCommand); });
+$("cmdInput").addEventListener("keydown", e=>{ if(e.key==="Enter" && !$("cmdRunBtn").disabled) aiBusy($("cmdRunBtn"), runCommand); });
 
 /* Befehl einsprechen */
 $("cmdMicBtn").addEventListener("click", ()=>{
@@ -772,11 +776,30 @@ function getMonday(d){
   const x = new Date(d); const day = (x.getDay()+6)%7;
   x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x;
 }
-function weekKey(mon){ return "week:"+mon.toISOString().slice(0,10); }
+/* Lokales Datum statt toISOString() (UTC): sonst wird Montag 00:00 in
+   Zeitzonen östlich von UTC unter dem Sonntags-Datum gespeichert. */
+function localDateKey(d){
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function weekKey(mon){ return "week:"+localDateKey(mon); }
+/* Alte, per toISOString() erzeugte Keys einmalig migrieren */
+async function migrateWeekKey(mon){
+  const legacy = "week:"+mon.toISOString().slice(0,10);
+  if(legacy === weekKey(mon)) return null;
+  return await store.get(legacy);
+}
 function fmtDate(d){ return String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."; }
 
+let loadWeekSeq = 0; // Schutz gegen Race bei schnellem Wochenwechsel
 async function loadWeek(){
-  const w = await store.get(weekKey(currentMonday));
+  const seq = ++loadWeekSeq;
+  const monday = new Date(currentMonday);
+  let w = await store.get(weekKey(monday));
+  if(!w){
+    const legacy = await migrateWeekKey(monday);
+    if(legacy){ w = legacy; if(seq === loadWeekSeq) await store.set(weekKey(monday), legacy); }
+  }
+  if(seq !== loadWeekSeq) return; // inzwischen wurde eine andere Woche geladen
   week = w || emptyWeek();
   DAYS.forEach(d=>{ if(!Array.isArray(week[d])) week[d]=[]; });
   renderWeek();
@@ -787,10 +810,12 @@ const DAYSHORT = {mon:"Mo",tue:"Di",wed:"Mi",thu:"Do",fri:"Fr",sat:"Sa",sun:"So"
 const CATCOLOR = {Fokus:"var(--cyan)",Lernen:"var(--blue)",Arbeit:"var(--amber)",Sport:"var(--green)",Privat:"#C084FC",Erholung:"var(--violet)"};
 const PRIO_LABEL = {high:"Wichtig", medium:"Sollte", normal:"Normal", low:"Optional"};
 
+function newTaskId(){ return "t"+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 function normalizeTask(t){
   return {
-    id: t.id || ("t"+Date.now()+Math.random().toString(36).slice(2,6)),
-    time: typeof t.time === "string" ? t.time : "",
+    // id strikt validieren: landet in HTML-Attributen und kommt ggf. aus Cloud-Sync
+    id: (typeof t.id === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(t.id)) ? t.id : newTaskId(),
+    time: (typeof t.time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(t.time)) ? t.time : "",
     title: cleanText(t.title || "Aufgabe", LIMITS.TASK_TITLE),
     cat: CATS.includes(t.cat || t.category) ? (t.cat || t.category) : "Privat",
     done: !!t.done,
@@ -970,7 +995,7 @@ async function addTaskFromRow(day){
   if(!title) return toast("Aufgabe eingeben.");
   const time = timeInput.value;
   const cat = catInput.value;
-  week[day].push(normalizeTask({id:"t"+Date.now()+Math.random().toString(36).slice(2,6), time, title, cat, priority: prioInput.value, duration: durInput.value, done:false}));
+  week[day].push(normalizeTask({id:newTaskId(), time, title, cat, priority: prioInput.value, duration: durInput.value, done:false}));
   await saveWeek(); renderWeek();
   /* Eingabezeile offen lassen für die nächste Aufgabe */
   const row = document.getElementById("addrow-"+day);
@@ -1052,7 +1077,7 @@ async function parseWeekSpeech(text){
   for(const t of tasks){
     if(!DAYS.includes(t.day) || !t.title) continue;
     week[t.day].push(normalizeTask({
-      id:"t"+Date.now()+Math.random().toString(36).slice(2,6),
+      id:newTaskId(),
       time: (t.time||"").match(/^\d{2}:\d{2}$/) ? t.time : "",
       title: cleanText(t.title, LIMITS.TASK_TITLE),
       cat: CATS.includes(t.category) ? t.category : "Privat",
@@ -1265,7 +1290,9 @@ $("authSubmit").addEventListener("click", async ()=>{
   const pass = $("authPass").value;
   const errEl = $("authErr");
   errEl.textContent = "";
+  errEl.style.color = "var(--red)";
   if(!email || !pass){ errEl.textContent = "Bitte E-Mail und Passwort eingeben."; return; }
+  if(authMode === "register" && pass.length < 8){ errEl.textContent = "Passwort braucht mindestens 8 Zeichen."; return; }
   if(!sb){ errEl.textContent = "Konten sind noch nicht eingerichtet (Supabase fehlt in CONFIG)."; return; }
   const btn = $("authSubmit"); const orig = btn.textContent;
   btn.disabled = true; btn.textContent = "…";
@@ -1291,6 +1318,11 @@ $("authSubmit").addEventListener("click", async ()=>{
     btn.disabled = false; btn.textContent = orig;
   }
 });
+
+/* Enter im E-Mail-/Passwortfeld löst die Anmeldung aus */
+["authEmail","authPass"].forEach(id=> $(id).addEventListener("keydown", e=>{
+  if(e.key === "Enter" && !$("authSubmit").disabled) $("authSubmit").click();
+}));
 
 $("authGuest").addEventListener("click", async ()=>{
   currentUser = null; store.mode = "local";
@@ -1357,7 +1389,11 @@ function updateAiStatus(label){
       showAuthMask();
     }
     sb.auth.onAuthStateChange((event, session)=>{
-      if(event === "SIGNED_OUT"){ currentUser = null; store.mode = "local"; }
+      if(event === "SIGNED_OUT" && currentUser){
+        currentUser = null; store.mode = "local";
+        loadAllUserData(); // UI zurück in den Gast-Modus bringen
+        toast("Sitzung beendet – du bist jetzt im Gast-Modus.");
+      }
     });
   }else{
     // Kein Supabase konfiguriert -> direkt als Gast starten

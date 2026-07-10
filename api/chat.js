@@ -39,6 +39,12 @@ function clientIp(req) {
 function rateLimit(req) {
   const key = clientIp(req);
   const now = Date.now();
+  // Abgelaufene Buckets entfernen, damit die Map nicht unbegrenzt waechst
+  if (requestBuckets.size > 1000) {
+    for (const [k, b] of requestBuckets) {
+      if (now > b.resetAt) requestBuckets.delete(k);
+    }
+  }
   const bucket = requestBuckets.get(key) || { count: 0, resetAt: now + WINDOW_MS };
   if (now > bucket.resetAt) {
     bucket.count = 0;
@@ -81,6 +87,7 @@ module.exports = async function handler(req, res) {
 
   let body = req.body;
   if (typeof body === "string") {
+    if (body.length > 64 * 1024) { res.status(413).json({ error: "Request zu gross." }); return; }
     try { body = JSON.parse(body); }
     catch (e) { res.status(400).json({ error: "Ungueltiges JSON im Request-Body." }); return; }
   }
@@ -103,6 +110,8 @@ module.exports = async function handler(req, res) {
   };
   if (body.system && typeof body.system === "string") payload.system = body.system.slice(0, 8000);
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
   try {
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -111,11 +120,14 @@ module.exports = async function handler(req, res) {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01"
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
     const data = await upstream.json().catch(() => ({}));
     if (!upstream.ok) {
-      res.status(upstream.status).json({ error: "Anthropic-Fehler", detail: data.error?.message || "Upstream request failed." });
+      // Keine Upstream-Details an den Client durchreichen (Info-Leak)
+      console.error("Anthropic error", upstream.status, data.error?.message);
+      res.status(502).json({ error: "KI-Dienst aktuell nicht verfuegbar." });
       return;
     }
     const text = Array.isArray(data.content)
@@ -123,7 +135,10 @@ module.exports = async function handler(req, res) {
       : "";
     res.status(200).json({ text });
   } catch (err) {
-    res.status(502).json({ error: "Anthropic nicht erreichbar", detail: String(err) });
+    console.error("Anthropic unreachable", err);
+    res.status(502).json({ error: "KI-Dienst aktuell nicht erreichbar." });
+  } finally {
+    clearTimeout(timeout);
   }
 };
 
