@@ -52,6 +52,16 @@ Getestet werden Datumsberechnung (inkl. Jahreswechsel und Sommerzeit), relative 
 
 ## Changelog
 
+### 2.1.0 (2026-07-13)
+- Einträge bearbeiten: Antippen öffnet einen Dialog (Titel, Uhrzeit, Tag, Kategorie, Priorität, Dauer) – damit lassen sich Aufgaben auch auf andere Tage verschieben; bei festen Terminen gilt die Änderung für jede Woche.
+- Spracheingabe versteht absolute Daten („am 11.08. …“, „am 3. August“) und speichert sie automatisch in der richtigen Woche – auch über Monats-/Jahresgrenzen.
+- Uhrzeiten ohne „Uhr“ („ein Termin um 16“) werden erkannt, auch am Satzende.
+- Die KI ignoriert Denkpausen, Füllwörter und kurze Nebengespräche und übernimmt bei Selbstkorrekturen nur die letzte Version.
+- „Woche einsprechen“ bezieht sich jetzt immer auf die aktuelle Woche, egal welche Woche zuletzt angezeigt wurde; die Vorschau zeigt pro Eintrag das konkrete Datum.
+- Theme wird vor dem ersten Rendern angewendet (kein Dunkel-Blitz mehr im Light-Mode).
+- Aufräumen: Erledigt-Marker gelöschter fester Termine werden mit entfernt.
+
+
 ### 2.0.0 (2026-07-13)
 - Neues Start-Dashboard: Heute, wichtige Termine der Woche und Hinweise auf einen Blick.
 - Feste wöchentliche Termine („jede Woche wiederholen“), inkl. Erledigt-Status pro Woche.

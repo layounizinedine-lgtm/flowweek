@@ -133,3 +133,44 @@ test("splitTimeChunks schneidet an jeder Zeitangabe", () => {
   assert.equal(splitTimeChunks("um 12 lernen dann um 15 Uhr Training").length, 2);
   assert.equal(splitTimeChunks("einfach nur einkaufen").length, 1);
 });
+
+// ---- Absolute Daten & nachgestellte Uhrzeiten (v2.1) ----
+test("absolutes Datum 'am 11.08.' mit Zeit ohne 'Uhr'", () => {
+  const ref = new Date(2026, 6, 13); // Montag, 13.07.2026
+  const t = parseWeekSpeechLocal("am 11.08. muss ich zum Zahnarzt um 12", 0, ref);
+  assert.equal(t.length, 1);
+  assert.equal(t[0].date, "2026-08-11");
+  assert.equal(t[0].time, "12:00");
+});
+
+test("Monatsname 'am 3. August'", () => {
+  const ref = new Date(2026, 6, 13);
+  const t = parseWeekSpeechLocal("am 3. August um 14 Uhr Treffen mit Ali", 0, ref);
+  assert.equal(t[0].date, "2026-08-03");
+  assert.equal(t[0].time, "14:00");
+});
+
+test("vergangenes Datum rollt ins nächste Jahr", () => {
+  const ref = new Date(2026, 6, 13);
+  const t = parseWeekSpeechLocal("am 05.01. Prüfung", 0, ref);
+  assert.equal(t[0].date, "2027-01-05");
+});
+
+test("nachgestellte Uhrzeit gehört zum letzten Eintrag", () => {
+  const t = parseWeekSpeechLocal("übermorgen habe ich ein Termin um 16", 2, new Date(2026, 6, 13));
+  assert.equal(t[0].day, "fri");
+  assert.equal(t[0].time, "16:00");
+  assert.equal(t[0].title, "Termin");
+});
+
+test("'um 12.30' ist eine Uhrzeit, kein Datum", () => {
+  const t = parseWeekSpeechLocal("Montag um 12.30 lernen", 0, new Date(2026, 6, 13));
+  assert.equal(t[0].day, "mon");
+  assert.equal(t[0].time, "12:30");
+  assert.equal(t[0].date, null);
+});
+
+test("ungültige Datumsangaben werden verworfen (31.02.)", () => {
+  const t = parseWeekSpeechLocal("am 31.02. Treffen", 0, new Date(2026, 6, 13));
+  assert.equal(t.length, 0);
+});
