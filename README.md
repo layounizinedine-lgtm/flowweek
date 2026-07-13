@@ -1,13 +1,15 @@
 # FlowWeek
 
-FlowWeek ist ein sprachgesteuerter Wochenplaner: Woche frei einsprechen, erkannte Einträge in einer Vorschau prüfen und bestätigen, Aufgaben abhaken – dazu Diktat mit KI-Politur, Command Mode und eine KI-Wochenanalyse. Gastdaten bleiben lokal im Browser; optional gibt es Cloud-Sync über ein Supabase-Konto.
+FlowWeek macht Wochenplanung stressfrei: Beim Öffnen zeigt ein Dashboard, was heute ansteht und was diese Woche wichtig ist. Die Woche lässt sich frei einsprechen (mit Vorschau und Bestätigung), feste Termine wiederholen sich automatisch jede Woche, und eine Analyse hilft, die Woche ausgewogen zu halten. Gastdaten bleiben lokal im Browser; optional gibt es Cloud-Sync über ein Supabase-Konto.
 
 ## Funktionen
 
-- **Woche einsprechen**: Eine Aufnahme kann mehrere Tage, Uhrzeiten und Aufgaben enthalten („Montag um 9 Mathe, morgen 18 Uhr Training …“). Vor dem Speichern zeigt FlowWeek eine Vorschau, in der jeder Eintrag einzeln bearbeitet, abgewählt oder bestätigt wird. Relative Angaben (heute, morgen, übermorgen, Wochenende) und Korrekturen im Satz („… nein, mach daraus Mittwoch“) werden berücksichtigt. Ohne KI-Verbindung greift ein lokaler Fallback-Parser.
-- **Diktat**: Spracherkennung im Browser (Web Speech API), KI-Politur (Füllwörter, Interpunktion, Selbstkorrekturen), Command Mode, Text-Snippets, Verlauf.
-- **Wochenplaner**: Wochenübersicht, Tageskarten, Kategorien, Prioritäten, Dauer, Zeitkonflikt-Erkennung, Vorlagen.
-- **KI-Wochenanalyse**: Bewertung von Balance, Zeitplanung und Lern-Effizienz; lokale Basisanalyse als Fallback.
+- **Start-Dashboard**: Beim Öffnen siehst du sofort, was heute ansteht, welche Termine diese Woche wichtig sind und was du beachten solltest (offene Aufgaben, Zeitkonflikte, zu volle Tage).
+- **Woche einsprechen**: Eine Aufnahme kann mehrere Tage, Uhrzeiten und Aufgaben enthalten. Vor dem Speichern zeigt FlowWeek eine Vorschau, in der jeder Eintrag einzeln bearbeitet, abgewählt oder bestätigt wird. Relative Angaben (heute, morgen, übermorgen, Wochenende) und Korrekturen im Satz werden berücksichtigt; ohne KI-Verbindung greift ein lokaler Fallback-Parser.
+- **Feste Termine**: Beim Anlegen „jede Woche wiederholen“ anhaken – der Termin erscheint automatisch in jeder Woche (↻) und der Erledigt-Status gilt pro Woche.
+- **Wochenplaner**: Übersichtsleiste, Tageskarten, Kategorien, Prioritäten, sofortiger Wochenwechsel (lokaler Cache, Cloud-Abgleich im Hintergrund), „Heute“-Knopf.
+- **Menü**: Hell/Dunkel/System-Theme, Sprache der Spracheingabe, Mini-Kalender zum Planen Monate im Voraus, Konto.
+- **Wochenanalyse**: Ehrliche Einschätzung von Balance und Zeitplanung; lokale Basisanalyse als Fallback.
 
 ## Aufbau
 
@@ -45,10 +47,19 @@ Getestet werden Datumsberechnung (inkl. Jahreswechsel und Sommerzeit), relative 
 ## Datenschutz
 
 - Audio wird nicht aufgezeichnet oder gespeichert – die Spracherkennung läuft über die Web Speech API des Browsers; FlowWeek verarbeitet nur den erkannten Text.
-- KI-Funktionen senden nur den jeweils relevanten Text an den FlowWeek-Proxy; Auto-Politur ist standardmäßig aus.
+- KI-Funktionen senden nur den jeweils relevanten Text an den FlowWeek-Proxy – und nur, wenn du sie aktiv nutzt.
 - Gastdaten liegen ausschließlich im lokalen Browser-Speicher.
 
 ## Changelog
+
+### 2.0.0 (2026-07-13)
+- Neues Start-Dashboard: Heute, wichtige Termine der Woche und Hinweise auf einen Blick.
+- Feste wöchentliche Termine („jede Woche wiederholen“), inkl. Erledigt-Status pro Woche.
+- Burger-Menü mit Theme-Wahl (Hell/Dunkel/System), Sprache der Spracheingabe, Mini-Kalender (Monate voraus planen) und Konto.
+- Light-Mode mit eleganter, ruhiger Farbwelt (ein Akzentblau statt Amber+Blau); Logo angepasst.
+- Wochenwechsel rendert sofort aus dem Cache, Cloud-Sync läuft im Hintergrund.
+- Diktat-Tab (Transkript, KI-Politur, Command Mode, Snippets, Verlauf) entfernt – Fokus auf Planung.
+- Gast-Modus wird gemerkt: Die Login-Maske erscheint nicht mehr bei jedem Start.
 
 ### 1.2.0 (2026-07-10)
 - Neues Logo: Bildmarke mit Verlauf und Audio-Wellenform, passendes Favicon, verfeinerte Wortmarke.

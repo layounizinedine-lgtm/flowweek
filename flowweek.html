@@ -6,10 +6,10 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://flowweek-one.vercel.app https://pcdlqtcbpyvjdziqbrfk.supabase.co wss://pcdlqtcbpyvjdziqbrfk.supabase.co;">
 <title>FlowWeek – Sprechen. Planen. Besser werden.</title>
-<meta name="description" content="FlowWeek ist dein sprachgesteuerter Wochenplaner: Woche einsprechen, Aufgaben prüfen und bestätigen, Fortschritt abhaken – mit KI-Politur und Wochenanalyse.">
+<meta name="description" content="FlowWeek macht Wochenplanung stressfrei: Woche einsprechen, wichtige Termine auf einen Blick, feste wöchentliche Termine und eine klare Analyse.">
 <meta name="theme-color" content="#0F1218">
 <meta property="og:title" content="FlowWeek – Sprechen. Planen. Besser werden.">
-<meta property="og:description" content="Sprachgesteuerter Wochenplaner mit Diktat, KI-Politur und Wochenanalyse.">
+<meta property="og:description" content="Stressfreie Wochenplanung: einsprechen, prüfen, abhaken.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23FFB454'/%3E%3Cstop offset='.35' stop-color='%23FF9A3D'/%3E%3Cstop offset='1' stop-color='%235EA2FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M7 13.5v5M13 8.5v15M19 11.5v9M25 14v4' stroke='%23fff' stroke-width='3.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,16 +17,26 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2.110.2/dist/umd/supabase.js" integrity="sha384-yifgV8iFWyp5cgu+V1G1rtlEHpEErPlL5fTrkUELIsWq0CIVDON2WP/NlXVJT3vO" crossorigin="anonymous"></script>
 <style>
 :root{
-  --bg:#0F1218; --surface:#171C26; --surface2:#1E2432; --line:#262D3B;
-  --text:#E8ECF4; --muted:#8A94A6;
-  --amber:#FFB454; --amber-dim:rgba(255,180,84,.14);
-  --blue:#5EA2FF; --blue-dim:rgba(94,162,255,.14);
+  --bg:#0F1115; --surface:#171A21; --surface2:#1F232C; --line:#2A2F3A;
+  --text:#E9ECF1; --muted:#8B93A1;
+  --accent:#6B8AFD; --accent-dim:rgba(107,138,253,.14); --accent-deep:#5B78E8;
+  --amber:#E0A45C; --amber-dim:rgba(224,164,92,.14);
+  --blue:#6B8AFD; --blue-dim:rgba(107,138,253,.14);
   --green:#4ADE80; --red:#F87171; --violet:#A78BFA; --cyan:#22D3EE;
-  --radius:14px;
+  --radius:14px; --shadow:0 8px 30px rgba(0,0,0,.35); --tabbg:rgba(15,17,21,.92);
+}
+:root[data-theme="light"]{
+  --bg:#F4F5F7; --surface:#FFFFFF; --surface2:#F0F1F4; --line:#E3E6EC;
+  --text:#1D232E; --muted:#66707F;
+  --accent:#4763D8; --accent-dim:rgba(71,99,216,.10); --accent-deep:#3A52B8;
+  --amber:#B97F2E; --amber-dim:rgba(185,127,46,.12);
+  --blue:#4763D8; --blue-dim:rgba(71,99,216,.10);
+  --green:#1F9D55; --red:#DC2626; --violet:#7C5CD6; --cyan:#0E8DA8;
+  --shadow:0 8px 24px rgba(29,35,46,.08); --tabbg:rgba(255,255,255,.92);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{background:radial-gradient(1200px 600px at 80% -10%, rgba(94,162,255,.07), transparent 60%),radial-gradient(900px 500px at -10% 0%, rgba(255,180,84,.06), transparent 55%),var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);transition:background .25s,color .25s;color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,textarea,select{font-family:inherit;font-size:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none;width:100%}
 input:focus,textarea:focus,select:focus{border-color:var(--blue)}
@@ -37,21 +47,19 @@ button:focus-visible,[contenteditable]:focus-visible{outline:2px solid var(--blu
 .app{max-width:960px;margin:0 auto;padding:20px 16px 96px}
 header.top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
 .logo{font-family:'Archivo',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.03em;display:flex;align-items:center;gap:9px}
-.logo-mark{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#FFB454 0%,#FF9A3D 35%,#5EA2FF 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(255,180,84,.25), inset 0 1px 0 rgba(255,255,255,.25);flex-shrink:0}
+.logo-mark{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#8CA2FF 0%,#5B78E8 45%,#3A52B8 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(71,99,216,.30), inset 0 1px 0 rgba(255,255,255,.25);flex-shrink:0}
 .logo-mark svg{width:16px;height:16px;display:block}
-.logo .fw-flow{background:linear-gradient(90deg,#FFC97E,#FFB454);-webkit-background-clip:text;background-clip:text;color:transparent}
-.logo .fw-week{background:linear-gradient(90deg,#7EB4FF,#5EA2FF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo .fw-flow{background:linear-gradient(90deg,#8CA2FF,#5B78E8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo .fw-week{color:var(--text)}
 .status-dot{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
 .status-dot::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
 .status-dot.offline::before{background:var(--muted)}
 
 /* Tabs */
-nav.tabs{position:fixed;bottom:0;left:0;right:0;background:rgba(15,18,24,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;z-index:50}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--tabbg);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;z-index:50}
 nav.tabs button{flex:1;padding:12px 0 max(12px, env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted);transition:color .15s}
 nav.tabs button svg{width:22px;height:22px}
-nav.tabs button.active-amber{color:var(--amber)}
-nav.tabs button.active-blue{color:var(--blue)}
-nav.tabs button.active-green{color:var(--green)}
+nav.tabs button.active{color:var(--accent)}
 .view{display:none} .view.show{display:block;animation:fadeIn .2s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
@@ -62,44 +70,17 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .toolbar .btn{white-space:nowrap}
 .hint{font-size:12.5px;color:var(--muted)}
 
-/* ---------- Mic Orb (Signature) ---------- */
-.mic-stage{display:flex;flex-direction:column;align-items:center;padding:26px 0 14px;position:relative}
-.orb-wrap{position:relative;width:132px;height:132px;display:flex;align-items:center;justify-content:center}
-.ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--amber);opacity:0;pointer-events:none}
-.listening .ring{animation:pulse 1.8s ease-out infinite}
-.listening .ring:nth-child(2){animation-delay:.6s}
-.listening .ring:nth-child(3){animation-delay:1.2s}
-@keyframes pulse{0%{transform:scale(.85);opacity:.55}100%{transform:scale(1.45);opacity:0}}
-@media (prefers-reduced-motion:reduce){.listening .ring{animation:none;opacity:.3;transform:scale(1.1)}}
-.orb{width:104px;height:104px;border-radius:50%;background:linear-gradient(145deg,#232a38,#12161f);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 8px 30px rgba(0,0,0,.4)}
-.orb svg{width:40px;height:40px;color:var(--muted);transition:color .2s}
-.listening .orb{background:linear-gradient(145deg,#3a2c14,#1c1508);border-color:var(--amber);box-shadow:0 0 40px rgba(255,180,84,.25)}
-.listening .orb svg{color:var(--amber)}
-.mic-label{margin-top:12px;font-size:13px;color:var(--muted);font-weight:500}
-.listening + .mic-label, .mic-stage.listening .mic-label{color:var(--amber)}
-.lang-row{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px}
-.lang-row select{width:auto;padding:6px 28px 6px 10px;font-size:13px}
-
-/* Transcript */
-.transcript{min-height:110px;white-space:pre-wrap}
-.interim{color:var(--muted);font-style:italic}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .btn{padding:9px 14px;border-radius:10px;font-weight:600;font-size:13.5px;border:1px solid var(--line);background:var(--surface2);transition:all .15s;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{border-color:#3a4457}
 .btn:disabled{opacity:.45;cursor:default}
-.btn.amber{background:var(--amber-dim);border-color:rgba(255,180,84,.4);color:var(--amber)}
-.btn.blue{background:var(--blue-dim);border-color:rgba(94,162,255,.4);color:var(--blue)}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff}
+.btn.primary:hover{background:var(--accent-deep)}
 .btn.ghost{background:transparent}
 .btn.danger{color:var(--red)}
 .spin{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* Snippets & history */
-.snip-list,.hist-list{display:flex;flex-direction:column;gap:8px}
-.snip-item,.hist-item{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-.snip-item b{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--amber)}
-.hist-item .txt{flex:1;font-size:13.5px;white-space:pre-wrap;word-break:break-word}
-.hist-item time{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
 .icon-btn{color:var(--muted);padding:4px;border-radius:6px;flex-shrink:0}
 .icon-btn:hover{color:var(--text);background:var(--surface)}
 .icon-btn svg{width:16px;height:16px;display:block}
@@ -110,7 +91,7 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .weeknav button{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 
 /* Wochen-Übersicht */
-.overview{background:linear-gradient(160deg,var(--surface),#141926);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;margin-bottom:14px}
+.overview{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;margin-bottom:14px}
 .weekstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:12px}
 .ws-day{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .15s;min-width:0}
 .ws-day:active{transform:scale(.96)}
@@ -132,22 +113,8 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .stack-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px;font-size:11.5px;color:var(--muted)}
 .stack-legend span::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 
-.command-center{display:grid;grid-template-columns:1.2fr .8fr;gap:10px;margin-bottom:14px}
-.focus-card{background:linear-gradient(160deg,#18202d,#10151f);border:1px solid rgba(94,162,255,.3);border-radius:var(--radius);padding:15px}
-.focus-title{font-family:'Archivo',sans-serif;font-size:22px;font-weight:800;margin:2px 0 6px}
-.focus-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface2);border-radius:999px;padding:5px 9px;font-size:11.5px;color:var(--muted)}
-.pill.hot{color:var(--amber);border-color:rgba(255,180,84,.38);background:var(--amber-dim)}
-.pill.good{color:var(--green);border-color:rgba(74,222,128,.34);background:rgba(74,222,128,.1)}
-.insight-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.metric{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px}
-.metric b{display:block;font-family:'Archivo',sans-serif;font-size:20px;line-height:1.1}
-.metric span{font-size:11.5px;color:var(--muted)}
 .coach-list{display:flex;flex-direction:column;gap:7px;margin-top:10px}
 .coach-item{background:var(--surface2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12.5px;color:var(--muted)}
-.quickbar{display:flex;gap:8px;overflow:auto;margin-bottom:14px;padding-bottom:2px}
-.quickbar .btn{flex-shrink:0}
-
 /* Tageskarten */
 .daycol{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:13px 13px 11px;margin-bottom:10px;scroll-margin-top:12px}
 .daycol.today{border-color:rgba(94,162,255,.55);box-shadow:0 0 0 1px rgba(94,162,255,.18), 0 4px 20px rgba(94,162,255,.06)}
@@ -187,7 +154,6 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .addrow.open{display:grid;animation:fadeIn .18s ease}
 .addrow input,.addrow select{padding:7px 8px;font-size:13px}
 .addrow .btn{padding:0;justify-content:center}
-.legend{display:none}
 
 /* ---------- Analysis ---------- */
 .score-wrap{display:flex;align-items:center;gap:18px}
@@ -204,15 +170,9 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--line);padding:10px 18px;border-radius:12px;font-size:13.5px;opacity:0;transition:all .25s;pointer-events:none;z-index:99;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%)}
 .warn{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.35);border-radius:10px;padding:10px 12px;font-size:13px;color:#fca5a5;margin-bottom:12px}
-details.settings{margin-top:22px}
-details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600}
 @media(min-width:720px){ .days-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px} .daycol{margin-bottom:0} }
 @media(max-width:520px){
-  header.top{align-items:flex-start;gap:10px}
-  .accountbar{justify-content:flex-end;text-align:right}
   .weekstrip{gap:4px}
-  .command-center{grid-template-columns:1fr}
-  .insight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .addrow.open{grid-template-columns:1fr 1fr 40px}
   .addrow [data-add-title]{grid-column:1 / -1}
   .addrow [data-add-cat],.addrow [data-add-prio],.addrow [data-add-duration]{grid-column:auto}
@@ -234,18 +194,57 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
 .forgot:hover{color:var(--text)}
 .guestlink{text-align:center;margin-top:16px;font-size:12.5px;color:var(--muted)}
 .guestlink button{color:var(--blue);font-weight:600;text-decoration:underline}
-.accountbar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
-.accountbar b{color:var(--text)}
-.accountbar button{color:var(--red);font-weight:600;font-size:12px}
 
 /* ---------- Sprach-Vorschau ---------- */
 .preview-day{margin-bottom:10px}
-.pv-dayname{font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;color:var(--blue);margin-bottom:6px}
+.pv-dayname{font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;color:var(--accent);margin-bottom:6px}
 .preview-row{display:grid;grid-template-columns:auto 86px 1fr 92px;gap:6px;align-items:center;margin-bottom:6px}
 .preview-row input,.preview-row select{padding:7px 8px;font-size:13px}
-.preview-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
+.preview-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
 .pv-dup{grid-column:2/-1;font-size:11.5px;color:var(--muted);margin-top:-2px}
 @media(max-width:520px){ .preview-row{grid-template-columns:auto 86px 1fr} .preview-row select{grid-column:2/-1} }
+
+/* ---------- Dashboard ---------- */
+.hero{margin:6px 0 14px}
+.hello{font-family:'Archivo',sans-serif;font-weight:800;font-size:26px;letter-spacing:-.02em;margin-top:2px}
+.voicecard{margin-bottom:4px}
+.home-list{display:flex;flex-direction:column;gap:6px}
+.home-empty{font-size:13px;color:var(--muted)}
+.home-link{margin-top:10px;display:inline-block;font-size:13px;font-weight:600;color:var(--accent)}
+
+/* ---------- Burger & Drawer ---------- */
+.burger{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.burger:hover{color:var(--text)}
+.burger svg{width:20px;height:20px}
+.drawer-mask{position:fixed;inset:0;background:rgba(8,10,14,.5);z-index:150;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-mask.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(320px,88vw);background:var(--surface);border-left:1px solid var(--line);z-index:160;transform:translateX(105%);transition:transform .25s ease;padding:16px 16px 24px;overflow-y:auto;box-shadow:var(--shadow)}
+.drawer.open{transform:none}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;font-family:'Archivo',sans-serif;font-size:15px}
+.drawer-sec{margin-top:18px}
+.drawer-sec .eyebrow{margin-bottom:8px}
+.seg{display:flex;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{flex:1;padding:8px 0;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+
+/* ---------- Mini-Kalender ---------- */
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-head b{font-family:'Archivo',sans-serif;font-size:14px}
+.cal-head button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface2)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-grid .cal-dow{font-size:10px;color:var(--muted);text-align:center;padding:4px 0;text-transform:uppercase;letter-spacing:.06em}
+.cal-grid button{aspect-ratio:1;border-radius:8px;font-size:12.5px;color:var(--text)}
+.cal-grid button:hover{background:var(--surface2)}
+.cal-grid button.other{color:var(--muted);opacity:.45}
+.cal-grid button.today{border:1px solid var(--accent);color:var(--accent);font-weight:700}
+.cal-grid button.selweek{background:var(--accent-dim)}
+
+/* ---------- Weeknav-Extras & Routinen ---------- */
+.wk-center{display:flex;align-items:center;gap:10px}
+.todaybtn{font-size:11.5px;font-weight:600;color:var(--accent);border:1px solid var(--line);border-radius:99px;padding:4px 10px;background:var(--surface)}
+.tag.rec{color:var(--accent);border-color:transparent;background:var(--accent-dim)}
+.addrow label.recbox{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);grid-column:1/-1;cursor:pointer}
+.addrow input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -261,7 +260,7 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
       <input type="email" id="authEmail" placeholder="E-Mail" autocomplete="email">
       <input type="password" id="authPass" placeholder="Passwort" autocomplete="current-password" minlength="8">
       <div class="autherr" id="authErr"></div>
-      <button class="btn amber" id="authSubmit">Anmelden</button>
+      <button class="btn primary" id="authSubmit">Anmelden</button>
       <button class="forgot" id="authForgot">Passwort vergessen?</button>
     </div>
     <div class="guestlink" id="authGuestRow">oder <button id="authGuest">als Gast fortfahren (nur dieses Gerät)</button></div>
@@ -273,130 +272,105 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
     <div class="hint" id="parseWeekHint" style="margin:4px 0 12px"></div>
     <div id="parseList" style="max-height:52vh;overflow:auto"></div>
     <div class="btnrow" style="margin-top:14px">
-      <button class="btn amber" id="parseConfirm">Eintragen</button>
+      <button class="btn primary" id="parseConfirm">Eintragen</button>
       <button class="btn ghost" id="parseCancel">Verwerfen</button>
     </div>
   </div>
 </div>
+
+<div class="drawer-mask" id="drawerMask"></div>
+<aside class="drawer" id="drawer" aria-label="Menü">
+  <div class="drawer-head">
+    <b>Menü</b>
+    <button class="icon-btn" id="drawerClose" aria-label="Menü schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="drawer-sec">
+    <div class="eyebrow">Design</div>
+    <div class="seg" id="themeSeg">
+      <button data-theme-opt="light">Hell</button>
+      <button data-theme-opt="dark">Dunkel</button>
+      <button data-theme-opt="system">System</button>
+    </div>
+  </div>
+  <div class="drawer-sec">
+    <div class="eyebrow">Kalender</div>
+    <div class="cal" id="miniCal"></div>
+    <p class="hint" style="margin-top:6px">Tippe ein Datum, um diese Woche zu planen.</p>
+  </div>
+  <div class="drawer-sec">
+    <div class="eyebrow">Sprache der Spracheingabe</div>
+    <select id="langSel">
+      <option value="de-DE">Deutsch</option>
+      <option value="ar-SA">العربية</option>
+      <option value="en-US">English</option>
+      <option value="fr-FR">Français</option>
+      <option value="tr-TR">Türkçe</option>
+      <option value="es-ES">Español</option>
+    </select>
+  </div>
+  <div class="drawer-sec">
+    <div class="eyebrow">Konto</div>
+    <div id="settingsAccount" class="hint"></div>
+    <div class="btnrow" id="settingsActions" style="margin-top:8px"></div>
+    <div style="margin-top:12px"><span class="status-dot" id="aiStatus">KI bereit</span></div>
+    <p class="hint" style="margin-top:10px">KI-Funktionen senden nur den jeweils nötigen Text an den FlowWeek-Server. Gastdaten bleiben auf diesem Gerät.</p>
+  </div>
+</aside>
+
 <div class="app">
   <header class="top">
     <div class="logo"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M3 6.5v3M6.4 4v8M9.8 5.5v5M13 7v2"/></svg></span><span><span class="fw-flow">Flow</span><span class="fw-week">Week</span></span></div>
-    <div class="accountbar" id="accountBar"><span class="status-dot" id="aiStatus">KI bereit</span></div>
+    <button class="burger" id="burgerBtn" aria-label="Menü öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
   </header>
 
-  <!-- ============ VIEW: DIKTAT ============ -->
-  <section class="view show" id="view-dictate">
-    <div class="mic-stage" id="micStage">
-      <button class="orb-wrap" id="micBtn" aria-label="Diktat starten oder stoppen">
-        <span class="ring"></span><span class="ring"></span><span class="ring"></span>
-        <span class="orb">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a3.5 3.5 0 0 0-3.5 3.5v6a3.5 3.5 0 0 0 7 0v-6A3.5 3.5 0 0 0 12 2z"/><path d="M5 10.5a7 7 0 0 0 14 0M12 17.5V22M8.5 22h7"/></svg>
-        </span>
-      </button>
-      <div class="mic-label" id="micLabel">Tippen zum Sprechen</div>
-      <div class="lang-row">
-        <select id="langSel">
-          <option value="de-DE">Deutsch</option>
-          <option value="ar-SA">العربية</option>
-          <option value="en-US">English</option>
-          <option value="fr-FR">Français</option>
-          <option value="tr-TR">Türkçe</option>
-          <option value="es-ES">Español</option>
-        </select>
-        <label class="hint" style="display:flex;align-items:center;gap:5px">
-          <input type="checkbox" id="autoPolish" style="width:auto"> Auto-Politur
-        </label>
-      </div>
+  <!-- ============ VIEW: START (Dashboard) ============ -->
+  <section class="view show" id="view-home">
+    <div class="hero">
+      <div class="eyebrow" id="homeDate"></div>
+      <h1 class="hello" id="homeGreeting"></h1>
     </div>
-
     <div id="speechWarn" class="warn" style="display:none"></div>
-
-    <div class="card">
-      <div class="eyebrow">Transkript</div>
-      <div class="transcript" id="transcript" contenteditable="true" data-placeholder="Hier erscheint dein Text …"></div>
-      <div class="btnrow">
-        <button class="btn amber" id="polishBtn">✨ KI-Politur</button>
-        <button class="btn" id="copyBtn">Kopieren</button>
-        <button class="btn ghost danger" id="clearBtn">Leeren</button>
+    <div class="card voicecard">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button class="btn primary" id="weekMicBtn">🎙️ Woche einsprechen</button>
+        <p class="hint" style="flex:1;min-width:180px">Sag frei, was ansteht – z. B. „Montag um 9 Arzt, Mittwochabend Training“. Du bestätigst alles in einer Vorschau.</p>
       </div>
+      <div class="hint" id="weekMicStatus" style="margin-top:8px;display:none"></div>
     </div>
-
-    <h2 class="section" style="color:var(--amber)">Command Mode</h2>
-    <div class="card">
-      <p class="hint" style="margin-bottom:8px">Sag der KI, was sie mit dem Text oben machen soll – per Stimme oder Tastatur. Beispiele: „Mach das formeller“, „Fasse zusammen“, „Übersetze ins Arabische“, „Mach Stichpunkte draus“.</p>
-      <div style="display:flex;gap:8px">
-        <input id="cmdInput" placeholder="Befehl eingeben …">
-        <button class="btn" id="cmdMicBtn" title="Befehl einsprechen" style="flex-shrink:0">🎙️</button>
-      </div>
-      <div class="btnrow">
-        <button class="btn amber" id="cmdRunBtn">Ausführen</button>
-      </div>
-    </div>
-
-    <h2 class="section">Snippets</h2>
-    <div class="card">
-      <p class="hint" style="margin-bottom:8px">Sprich das Kürzel, FlowWeek fügt den Volltext ein. Z. B. „meine mail“ → deine E-Mail-Adresse.</p>
-      <div class="snip-list" id="snipList"></div>
-      <div style="display:grid;grid-template-columns:1fr 2fr 40px;gap:6px;margin-top:10px">
-        <input id="snipKey" placeholder="Kürzel">
-        <input id="snipVal" placeholder="Volltext">
-        <button class="btn blue" id="snipAdd" style="padding:0;justify-content:center">+</button>
-      </div>
-    </div>
-
-    <h2 class="section">Verlauf</h2>
-    <div class="hist-list" id="histList"></div>
+    <h2 class="section">Heute</h2>
+    <div class="card" id="homeToday"></div>
+    <h2 class="section">Wichtig diese Woche</h2>
+    <div class="card" id="homeUpcoming"></div>
+    <h2 class="section">Zu beachten</h2>
+    <div id="homeNotes" class="coach-list"></div>
   </section>
 
   <!-- ============ VIEW: WOCHE ============ -->
   <section class="view" id="view-week">
     <div class="weeknav">
       <button id="wkPrev" aria-label="Vorherige Woche">←</button>
-      <div class="wk" id="wkLabel"></div>
+      <div class="wk-center"><div class="wk" id="wkLabel"></div><button class="todaybtn" id="wkToday">Heute</button></div>
       <button id="wkNext" aria-label="Nächste Woche">→</button>
     </div>
-    <div class="command-center" id="commandCenter"></div>
     <div class="overview" id="overview"></div>
-    <div class="quickbar">
-      <button class="btn blue" data-template="deep">Fokusblock</button>
-      <button class="btn amber" data-template="reset">Wochenreset</button>
-      <button class="btn" data-template="sport">Training</button>
-      <button class="btn" data-template="review">Tagesabschluss</button>
-    </div>
-    <div class="card" style="margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:12px">
-        <button class="btn blue" id="weekMicBtn" style="flex-shrink:0">🎙️ Woche einsprechen</button>
-        <p class="hint">Sprich frei: „Montag um 9 Mathe lernen, morgen 18 Uhr Fitness, Mittwochabend Familie …“ – du siehst erst eine Vorschau und bestätigst dann.</p>
-      </div>
-      <div class="hint" id="weekMicStatus" style="margin-top:8px;display:none"></div>
-    </div>
     <div class="days-grid" id="daysGrid"></div>
   </section>
 
   <!-- ============ VIEW: ANALYSE ============ -->
   <section class="view" id="view-analysis">
-    <h2 class="section" style="margin-top:6px;color:var(--green)">KI-Wochenanalyse</h2>
+    <h2 class="section" style="margin-top:6px">Wochenanalyse</h2>
     <div class="card">
-      <p class="hint" style="margin-bottom:10px">Die KI bewertet deine geplante Woche: Balance, Lern-Effizienz, Pausen, realistische Zeitplanung – und gibt dir konkrete Verbesserungen. Wenn die KI offline ist, bekommst du eine lokale Basisanalyse.</p>
-      <button class="btn blue" id="analyzeBtn">🧠 Woche analysieren</button>
+      <p class="hint" style="margin-bottom:10px">Eine ehrliche Einschätzung deiner Woche: Balance, realistische Zeitplanung und konkrete Verbesserungen.</p>
+      <button class="btn primary" id="analyzeBtn">Woche analysieren</button>
     </div>
     <div id="anaResult" style="margin-top:14px"></div>
   </section>
-
-  <details class="settings">
-    <summary>⚙️ Konto & Einstellungen</summary>
-    <div class="card" style="margin-top:8px">
-      <div id="settingsAccount" class="hint">Du bist als Gast unterwegs – Daten liegen nur auf diesem Gerät.</div>
-      <div class="btnrow" id="settingsActions"></div>
-      <p class="hint" style="margin-top:10px">Hinweis: KI-Funktionen senden den jeweils relevanten Text an den FlowWeek-Backend-Proxy. Gastdaten bleiben lokal im Browser.</p>
-    </div>
-  </details>
 </div>
 
 <nav class="tabs">
-  <button data-view="dictate" class="active-amber" id="tab-dictate">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a3.5 3.5 0 0 0-3.5 3.5v6a3.5 3.5 0 0 0 7 0v-6A3.5 3.5 0 0 0 12 2z"/><path d="M5 10.5a7 7 0 0 0 14 0M12 17.5V22"/></svg>
-    Diktat
+  <button data-view="home" class="active" id="tab-home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Start
   </button>
   <button data-view="week" id="tab-week">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="17" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
@@ -413,8 +387,9 @@ details.settings summary{cursor:pointer;color:var(--muted);font-size:13px;font-w
 <script>
 "use strict";
 /* ============================================================
-   FlowWeek – Diktat (Wispr-Flow-Kern) + Wochenplaner + KI-Analyse
-   Läuft im Claude-Artifact UND als lokale Datei im Browser.
+   FlowWeek – stressfreie Wochenplanung
+   Startseite (Dashboard) + Wochenplaner + Analyse.
+   Läuft gehostet UND als lokale Datei im Browser.
    ============================================================ */
 
 /* ============================================================
@@ -659,10 +634,6 @@ function toast(msg){
   clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("show"), 2600);
 }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function setTranscriptText(text){
-  finalBuffer = cleanText(text);
-  renderTranscript("");
-}
 
 /* ---------- KI-Aufrufe über den versteckten Backend-Proxy ---------- */
 async function callClaude(userPrompt, systemPrompt){
@@ -715,216 +686,22 @@ async function aiBusy(btn, fn){
 /* ============================================================
    TABS
    ============================================================ */
-const tabColor = {dictate:"active-amber", week:"active-blue", analysis:"active-green"};
-document.querySelectorAll("nav.tabs button").forEach(b=>{
-  b.addEventListener("click", ()=>{
-    document.querySelectorAll(".view").forEach(v=>v.classList.remove("show"));
-    $("view-"+b.dataset.view).classList.add("show");
-    document.querySelectorAll("nav.tabs button").forEach(x=>x.className="");
-    b.className = tabColor[b.dataset.view];
-    window.scrollTo({top:0});
-  });
-});
+function switchView(name){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("show"));
+  $("view-"+name).classList.add("show");
+  document.querySelectorAll("nav.tabs button").forEach(x=>x.classList.toggle("active", x.dataset.view===name));
+  if(name === "home") renderHome();
+  window.scrollTo({top:0});
+}
+document.querySelectorAll("nav.tabs button").forEach(b=> b.addEventListener("click", ()=> switchView(b.dataset.view)));
 
 /* ============================================================
-   DIKTAT – Web Speech API
+   SPRACHERKENNUNG (für "Woche einsprechen")
    ============================================================ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recog = null, listening = false, finalBuffer = "";
-let snippets = [];
-
 function speechSupported(){ return !!SR; }
-
 function showSpeechWarn(msg){
   const w = $("speechWarn"); w.style.display = "block"; w.textContent = msg;
-}
-
-function buildRecognizer(){
-  const r = new SR();
-  r.lang = $("langSel").value;
-  r.continuous = true;
-  r.interimResults = true;
-  r.onresult = (ev)=>{
-    let interim = "";
-    for(let i = ev.resultIndex; i < ev.results.length; i++){
-      const res = ev.results[i];
-      if(res.isFinal){
-        finalBuffer += applySnippets(res[0].transcript) + " ";
-      }else{
-        interim += res[0].transcript;
-      }
-    }
-    renderTranscript(interim);
-  };
-  r.onerror = (ev)=>{
-    if(ev.error === "not-allowed" || ev.error === "service-not-allowed"){
-      stopListening();
-      showSpeechWarn("Mikrofon-Zugriff wurde blockiert. Erlaube das Mikrofon in den Browser-Einstellungen. Tipp: Lade die Datei herunter und öffne sie direkt in Chrome – dann klappt es zuverlässig.");
-    }else if(ev.error === "no-speech"){
-      /* still, einfach weiter */
-    }else{
-      console.warn("Speech error:", ev.error);
-    }
-  };
-  r.onend = ()=>{ if(listening){ try{ r.start(); }catch(e){} } };
-  return r;
-}
-
-function renderTranscript(interim){
-  const t = $("transcript");
-  t.innerHTML = esc(finalBuffer) + (interim ? '<span class="interim">'+esc(interim)+'</span>' : "");
-}
-$("transcript").addEventListener("paste", e=>{
-  e.preventDefault();
-  const text = cleanText((e.clipboardData || window.clipboardData).getData("text"), LIMITS.TEXT);
-  document.execCommand("insertText", false, text);
-});
-
-function applySnippets(text){
-  let out = text;
-  for(const s of snippets){
-    const rx = new RegExp("\\b"+s.key.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","gi");
-    out = out.replace(rx, s.val);
-  }
-  return out;
-}
-
-async function startListening(){
-  if(!speechSupported()){
-    showSpeechWarn("Dein Browser unterstützt keine Spracherkennung. Nutze Chrome, Edge oder Safari – oder tippe den Text direkt ins Feld.");
-    return;
-  }
-  finalBuffer = cleanText($("transcript").innerText.trim());
-  if(finalBuffer) finalBuffer += " ";
-  recog = buildRecognizer();
-  try{ recog.start(); }catch(e){}
-  listening = true;
-  $("micStage").classList.add("listening");
-  $("micLabel").textContent = "Ich höre zu … (tippen zum Stoppen)";
-}
-
-async function stopListening(){
-  listening = false;
-  if(recog){ try{ recog.stop(); }catch(e){} }
-  $("micStage").classList.remove("listening");
-  $("micLabel").textContent = "Tippen zum Sprechen";
-  renderTranscript("");
-  let text = cleanText($("transcript").innerText.trim());
-  if(text){
-    const corrected = applySelfCorrections(text);
-    if(corrected !== text){
-      text = corrected;
-      setTranscriptText(text);
-    }
-  }
-  if(text && $("autoPolish").checked){
-    aiBusy($("polishBtn"), async ()=>{ await polish(); });
-  }else if(text){
-    saveHistory(text);
-    if(hasCorrectionMarker(text)){
-      toast("Selbstkorrektur erkannt – tippe ✨ KI-Politur für die saubere Version.");
-    }
-  }
-}
-$("micBtn").addEventListener("click", ()=> listening ? stopListening() : startListening());
-$("langSel").addEventListener("change", ()=>{ if(listening){ stopListening(); } });
-
-/* ---- KI-Politur ---- */
-async function polish(){
-  const raw = cleanText($("transcript").innerText.trim());
-  if(!raw){ toast("Kein Text vorhanden."); return; }
-  const sys = "Du bist eine Diktat-Politur-Engine wie Wispr Flow. Du bekommst ein rohes Sprachtranskript. Aufgaben: 1) Füllwörter entfernen (ähm, äh, also, halt, sozusagen, you know …). 2) Korrekte Interpunktion und Groß-/Kleinschreibung. 3) Selbstkorrekturen des Sprechers auflösen – IMMER die LETZTE Version übernehmen: bei 'X, nein warte, Y' oder 'X, ich meine Y' oder 'X, eh nein, Y' oder 'X, äh nein, Y' oder 'X, quatsch, Y' nur Y behalten. Beispiel: 'ich war vorhin mit meinem Vater eh nein meiner Mutter draußen' wird zu 'Ich war vorhin mit meiner Mutter draußen.' 4) Aufzählungen als saubere Liste formatieren, wenn der Sprecher offensichtlich aufzählt. 5) Sprache des Transkripts beibehalten, NICHT übersetzen. 6) Inhalt nicht verändern, nichts hinzufügen. Antworte NUR mit dem polierten Text, ohne Kommentar.";
-  const result = await callClaude(raw, sys);
-  setTranscriptText(result);
-  saveHistory(result);
-  toast("Text poliert ✨");
-}
-$("polishBtn").addEventListener("click", ()=> aiBusy($("polishBtn"), polish));
-
-/* ---- Command Mode ---- */
-async function runCommand(){
-  const text = cleanText($("transcript").innerText.trim());
-  const cmd = cleanText($("cmdInput").value.trim(), LIMITS.COMMAND);
-  if(!cmd){ toast("Bitte einen Befehl eingeben."); return; }
-  if(!text){ toast("Kein Text im Transkript."); return; }
-  const sys = "Du bist der Command Mode eines Diktat-Tools. Du bekommst einen TEXT und einen BEFEHL des Nutzers. Führe den Befehl auf dem Text aus (umformulieren, zusammenfassen, übersetzen, Stichpunkte, formeller/lockerer machen usw.). Antworte NUR mit dem Ergebnis-Text.";
-  const result = await callClaude("TEXT:\n"+text+"\n\nBEFEHL: "+cmd, sys);
-  setTranscriptText(result);
-  saveHistory(result);
-  $("cmdInput").value = "";
-  toast("Befehl ausgeführt ✅");
-}
-$("cmdRunBtn").addEventListener("click", ()=> aiBusy($("cmdRunBtn"), runCommand));
-$("cmdInput").addEventListener("keydown", e=>{ if(e.key==="Enter" && !$("cmdRunBtn").disabled) aiBusy($("cmdRunBtn"), runCommand); });
-
-/* Befehl einsprechen */
-$("cmdMicBtn").addEventListener("click", ()=>{
-  if(!speechSupported()){ toast("Spracherkennung nicht verfügbar."); return; }
-  const r = new SR();
-  r.lang = $("langSel").value; r.interimResults = false; r.continuous = false;
-  $("cmdMicBtn").textContent = "👂";
-  r.onresult = ev => { $("cmdInput").value = ev.results[0][0].transcript; };
-  r.onend = ()=>{ $("cmdMicBtn").textContent = "🎙️"; };
-  r.onerror = ()=>{ $("cmdMicBtn").textContent = "🎙️"; };
-  try{ r.start(); }catch(e){ $("cmdMicBtn").textContent = "🎙️"; }
-});
-
-/* ---- Kopieren / Leeren ---- */
-$("copyBtn").addEventListener("click", async ()=>{
-  const text = cleanText($("transcript").innerText.trim());
-  if(!text) return toast("Nichts zu kopieren.");
-  try{ await navigator.clipboard.writeText(text); toast("Kopiert 📋"); }
-  catch(e){
-    const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
-    ta.select(); document.execCommand("copy"); ta.remove(); toast("Kopiert 📋");
-  }
-});
-$("clearBtn").addEventListener("click", ()=>{ finalBuffer=""; renderTranscript(""); });
-
-/* ---- Snippets ---- */
-function renderSnippets(){
-  const el = $("snipList");
-  if(!snippets.length){ el.innerHTML = '<div class="hint">Noch keine Snippets.</div>'; return; }
-  el.innerHTML = snippets.map((s,i)=>
-    '<div class="snip-item"><div><b>'+esc(s.key)+'</b> → '+esc(s.val)+'</div>'+
-    '<button class="icon-btn" data-del="'+i+'" aria-label="Löschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'
-  ).join("");
-  el.querySelectorAll("[data-del]").forEach(b=> b.addEventListener("click", async ()=>{
-    snippets.splice(+b.dataset.del,1);
-    await store.set("snippets", snippets);
-    renderSnippets();
-  }));
-}
-$("snipAdd").addEventListener("click", async ()=>{
-  const k = cleanText($("snipKey").value.trim(), LIMITS.SNIPPET_KEY), v = cleanText($("snipVal").value.trim(), LIMITS.SNIPPET_VALUE);
-  if(!k || !v) return toast("Kürzel und Volltext angeben.");
-  if(snippets.length >= LIMITS.SNIPPETS) return toast("Snippet-Limit erreicht.");
-  snippets.push({key:k, val:v});
-  await store.set("snippets", snippets);
-  $("snipKey").value=""; $("snipVal").value="";
-  renderSnippets(); toast("Snippet gespeichert");
-});
-
-/* ---- Verlauf ---- */
-let history = [];
-async function saveHistory(text){
-  history.unshift({text: cleanText(text, LIMITS.HISTORY_TEXT), ts: Date.now()});
-  history = history.slice(0, LIMITS.HISTORY_ITEMS);
-  await store.set("history", history);
-  renderHistory();
-}
-function renderHistory(){
-  const el = $("histList");
-  if(!history.length){ el.innerHTML = '<div class="hint" style="padding:0 2px">Deine Diktate erscheinen hier.</div>'; return; }
-  el.innerHTML = history.map((h,i)=>{
-    const d = new Date(h.ts);
-    const time = String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+". "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
-    return '<div class="hist-item"><div class="txt"><time>'+time+'</time><br>'+esc(h.text)+'</div>'+
-    '<button class="icon-btn" data-copy="'+i+'" aria-label="Kopieren"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>';
-  }).join("");
-  el.querySelectorAll("[data-copy]").forEach(b=> b.addEventListener("click", async ()=>{
-    try{ await navigator.clipboard.writeText(history[+b.dataset.copy].text); toast("Kopiert 📋"); }catch(e){}
-  }));
 }
 
 /* ============================================================
@@ -936,8 +713,15 @@ const CATS = ["Fokus","Lernen","Arbeit","Sport","Privat","Erholung"];
 const PRIOS = ["normal","high","medium","low"];
 let currentMonday = getMonday(new Date());
 let week = emptyWeek();
+let routines = []; // feste Termine - gelten automatisch in jeder Woche
 
-function emptyWeek(){ const w={}; DAYS.forEach(d=>w[d]=[]); return w; }
+function emptyWeek(){ const w={rdone:[]}; DAYS.forEach(d=>w[d]=[]); return w; }
+function normalizeWeekObj(w){
+  const out = (w && typeof w === "object") ? w : emptyWeek();
+  DAYS.forEach(d=>{ if(!Array.isArray(out[d])) out[d]=[]; });
+  if(!Array.isArray(out.rdone)) out.rdone = [];
+  return out;
+}
 function weekKey(mon){ return "week:"+localDateKey(mon); }
 /* Alte, per toISOString() erzeugte Keys einmalig migrieren */
 async function migrateWeekKey(mon){
@@ -948,20 +732,32 @@ async function migrateWeekKey(mon){
 function fmtDate(d){ return String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."; }
 
 let loadWeekSeq = 0; // Schutz gegen Race bei schnellem Wochenwechsel
+const weekCache = new Map(); // Wochen im Speicher: Wochenwechsel rendert sofort
 async function loadWeek(){
   const seq = ++loadWeekSeq;
   const monday = new Date(currentMonday);
-  let w = await store.get(weekKey(monday));
+  const key = weekKey(monday);
+  /* 1) Sofort rendern: aus Speicher-Cache oder lokalem Speicher, ohne aufs Netz zu warten */
+  week = normalizeWeekObj(weekCache.get(key) || store._localGet(key));
+  renderWeek();
+  /* 2) Cloud (bzw. Migration alter Keys) im Hintergrund abgleichen */
+  let w = await store.get(key);
   if(!w){
     const legacy = await migrateWeekKey(monday);
-    if(legacy){ w = legacy; if(seq === loadWeekSeq) await store.set(weekKey(monday), legacy); }
+    if(legacy){ w = legacy; if(seq === loadWeekSeq) await store.set(key, legacy); }
   }
   if(seq !== loadWeekSeq) return; // inzwischen wurde eine andere Woche geladen
-  week = w || emptyWeek();
-  DAYS.forEach(d=>{ if(!Array.isArray(week[d])) week[d]=[]; });
-  renderWeek();
+  if(w){
+    const fresh = normalizeWeekObj(w);
+    if(JSON.stringify(fresh) !== JSON.stringify(week)){ week = fresh; renderWeek(); }
+  }
+  weekCache.set(key, week);
 }
-async function saveWeek(){ await store.set(weekKey(currentMonday), week); }
+async function saveWeek(){
+  weekCache.set(weekKey(currentMonday), week);
+  await store.set(weekKey(currentMonday), week);
+}
+async function saveRoutines(){ await store.set("routines", routines); }
 
 const DAYSHORT = {mon:"Mo",tue:"Di",wed:"Mi",thu:"Do",fri:"Fr",sat:"Sa",sun:"So"};
 const CATCOLOR = {Fokus:"var(--cyan)",Lernen:"var(--blue)",Arbeit:"var(--amber)",Sport:"var(--green)",Privat:"#C084FC",Erholung:"var(--violet)"};
@@ -981,9 +777,22 @@ function normalizeTask(t){
     notes: t.notes ? cleanText(t.notes, LIMITS.TASK_NOTES) : ""
   };
 }
-function allWeekTasks(){ return DAYS.flatMap(day=>week[day].map(t=>({day, ...normalizeTask(t)}))); }
+function routineInstances(day, wk){
+  const w = wk || week;
+  return routines.filter(r=>r.day===day).map(r=>{
+    const t = normalizeTask(r);
+    t.id = "r-"+r.id; t.routine = true;
+    t.done = (w.rdone||[]).includes(r.id+"@"+day);
+    return t;
+  });
+}
+function dayTasks(day, wk){
+  const w = wk || week;
+  return w[day].map(t=>normalizeTask(t)).concat(routineInstances(day, w));
+}
+function allWeekTasks(){ return DAYS.flatMap(day=>dayTasks(day).map(t=>({day, ...t}))); }
 function dayLoad(day){
-  return week[day].reduce((sum,t)=>sum+(Number(t.duration)||30),0);
+  return dayTasks(day).reduce((sum,t)=>sum+(Number(t.duration)||30),0);
 }
 function formatHours(minutes){
   const h = minutes / 60;
@@ -999,12 +808,12 @@ function getWeekInsights(){
   });
   const todayIdx = (new Date().getDay()+6)%7;
   const todayDay = DAYS[todayIdx];
-  const todayTasks = getMonday(new Date()).getTime() === currentMonday.getTime() ? week[todayDay].map(t=>normalizeTask(t)) : [];
+  const todayTasks = getMonday(new Date()).getTime() === currentMonday.getTime() ? dayTasks(todayDay) : [];
   const overloaded = DAYS.filter(d=>dayLoad(d) > 420);
   const noRecovery = all.length && !all.some(t=>t.cat==="Erholung");
   const conflicts = [];
   DAYS.forEach(d=>{
-    const byTime = week[d].map(normalizeTask).filter(t=>t.time);
+    const byTime = dayTasks(d).filter(t=>t.time);
     byTime.forEach((t,i)=>{
       const start = minutesOf(t.time), end = start + (Number(t.duration)||30);
       byTime.slice(i+1).forEach(other=>{
@@ -1016,45 +825,20 @@ function getWeekInsights(){
   return {all,total,done,focus,todayTasks,overloaded,noRecovery,conflicts};
 }
 
-function renderCommandCenter(){
-  const i = getWeekInsights();
-  const pct = i.total ? Math.round(i.done/i.total*100) : 0;
-  const next = i.focus[0];
-  const todayOpen = i.todayTasks.filter(t=>!t.done).length;
-  const coach = [];
-  if(next) coach.push("Nächster Hebel: "+next.title+" zuerst abschließen.");
-  if(i.conflicts.length) coach.push(i.conflicts.length+" Zeitkonflikt(e) prüfen, bevor die Woche kippt.");
-  if(i.overloaded.length) coach.push("Zu volle Tage: "+i.overloaded.map(d=>DAYSHORT[d]).join(", ")+". Puffer einplanen.");
-  if(i.noRecovery) coach.push("Mindestens einen Erholungsblock setzen, sonst wird der Plan fragil.");
-  if(!coach.length) coach.push("Die Woche wirkt stabil. Jetzt konsequent abhaken und abends kurz nachsteuern.");
-  $("commandCenter").innerHTML =
-    '<div class="focus-card">'+
-      '<div class="eyebrow">Heute im Fokus</div>'+
-      '<div class="focus-title">'+esc(next ? next.title : "Woche aufsetzen")+'</div>'+
-      '<p class="hint">'+esc(next ? (DAYNAMES[next.day]+" "+(next.time || "ohne Uhrzeit")+" - "+next.cat) : "Lege einen Fokusblock oder Wochenreset an, um sofort Struktur zu schaffen.")+'</p>'+
-      '<div class="focus-meta"><span class="pill hot">'+i.focus.length+' Fokus offen</span><span class="pill good">'+pct+'% erledigt</span><span class="pill">'+todayOpen+' heute offen</span></div>'+
-    '</div>'+
-    '<div><div class="insight-grid">'+
-      '<div class="metric"><b>'+i.total+'</b><span>Aufgaben</span></div>'+
-      '<div class="metric"><b>'+formatHours(DAYS.reduce((s,d)=>s+dayLoad(d),0))+'</b><span>Zeit geplant</span></div>'+
-      '<div class="metric"><b>'+i.conflicts.length+'</b><span>Konflikte</span></div>'+
-      '<div class="metric"><b>'+i.overloaded.length+'</b><span>volle Tage</span></div>'+
-    '</div><div class="coach-list">'+coach.slice(0,3).map(x=>'<div class="coach-item">'+esc(x)+'</div>').join("")+'</div></div>';
-}
-
 function renderOverview(todayMon, todayIdx){
-  const allTasks = DAYS.flatMap(d=>week[d]);
+  const allTasks = DAYS.flatMap(d=>dayTasks(d));
   const total = allTasks.length, done = allTasks.filter(t=>t.done).length;
   const pct = total ? Math.round(done/total*100) : 0;
 
   /* 7-Tage-Leiste */
   const strip = DAYS.map((d,i)=>{
     const date = new Date(currentMonday); date.setDate(date.getDate()+i);
-    const dots = week[d].slice(0,8).map(t=>'<i class="d-'+esc(t.cat)+'"></i>').join("");
+    const list = dayTasks(d);
+    const dots = list.slice(0,8).map(t=>'<i class="d-'+esc(t.cat)+'"></i>').join("");
     return '<button class="ws-day'+(todayMon && i===todayIdx ? ' today':'')+'" data-jump="'+d+'">'+
       '<span class="wsd">'+DAYSHORT[d]+'</span>'+
       '<span class="wsn">'+date.getDate()+'</span>'+
-      (week[d].length ? '<span class="ws-dots">'+dots+'</span>' : '<span class="ws-free">frei</span>')+
+      (list.length ? '<span class="ws-dots">'+dots+'</span>' : '<span class="ws-free">frei</span>')+
     '</button>';
   }).join("");
 
@@ -1069,7 +853,7 @@ function renderOverview(todayMon, todayIdx){
   $("overview").innerHTML =
     '<div class="weekstrip">'+strip+'</div>'+
     '<div class="progress-row"><span class="plabel">Erledigt</span><div class="pbar"><i style="width:'+pct+'%"></i></div><span class="pnum">'+done+'/'+total+'</span></div>'+
-    (total ? '<div class="stackbar">'+stack+'</div>' : '<div class="hint">Noch nichts geplant – tippe unten auf + oder sprich deine Woche ein.</div>')+
+    (total ? '<div class="stackbar">'+stack+'</div>' : '<div class="hint">Noch nichts geplant – tippe bei einem Tag auf + oder sprich deine Woche auf der Startseite ein.</div>')+
     '<div class="stack-legend">'+legend+'</div>';
 
   $("overview").querySelectorAll("[data-jump]").forEach(b=> b.addEventListener("click", ()=>{
@@ -1085,19 +869,18 @@ function renderWeek(){
   const todayIdx = (new Date().getDay()+6)%7;
 
   DAYS.forEach(d=>{ week[d] = week[d].map(normalizeTask); });
-  renderCommandCenter();
   renderOverview(todayMon, todayIdx);
 
   $("daysGrid").innerHTML = DAYS.map((d,i)=>{
     const date = new Date(currentMonday); date.setDate(date.getDate()+i);
-    const tasks = [...week[d]].sort((a,b)=>(a.time||"99").localeCompare(b.time||"99"));
+    const tasks = dayTasks(d).sort((a,b)=>(a.time||"99").localeCompare(b.time||"99"));
     const doneN = tasks.filter(t=>t.done).length;
     const taskHtml = tasks.length ? tasks.map(t=>
       '<div class="task cat-'+esc(t.cat)+(t.done?' done':'')+(t.priority==="high"?' prio-high':'')+'" data-day="'+d+'" data-id="'+t.id+'">'+
       '<button class="chk" aria-label="Erledigt umschalten">'+(t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>':'')+'</button>'+
       '<span class="t-time">'+esc(t.time||"–")+'</span>'+
       '<span class="t-main"><span class="t-title">'+esc(t.title)+'</span>'+(t.notes?'<span class="t-notes">'+esc(t.notes)+'</span>':'')+'</span>'+
-      '<span class="t-tags">'+(t.priority!=="normal"?'<span class="tag prio-'+esc(t.priority)+'">'+PRIO_LABEL[t.priority]+'</span>':'')+'<span class="tag">'+(t.duration||30)+'m</span></span>'+
+      '<span class="t-tags">'+(t.routine?'<span class="tag rec">↻ fest</span>':'')+(t.priority!=="normal"?'<span class="tag prio-'+esc(t.priority)+'">'+PRIO_LABEL[t.priority]+'</span>':'')+'<span class="tag">'+(t.duration||30)+'m</span></span>'+
       '<button class="icon-btn t-del" aria-label="Löschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>'+
       '</div>'
     ).join("") : '<div class="empty-day">Nichts geplant.</div>';
@@ -1112,19 +895,36 @@ function renderWeek(){
         '<select data-add-cat="'+d+'">'+CATS.map(c=>'<option>'+c+'</option>').join("")+'</select>'+
         '<select data-add-prio="'+d+'"><option value="normal">Normal</option><option value="high">Wichtig</option><option value="medium">Sollte</option><option value="low">Optional</option></select>'+
         '<select data-add-duration="'+d+'"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option><option value="90">90 min</option><option value="120">2 h</option></select>'+
-        '<button class="btn blue" data-add-btn="'+d+'">+</button>'+
+        '<button class="btn primary" data-add-btn="'+d+'">+</button>'+
+        '<label class="recbox"><input type="checkbox" data-add-rec="'+d+'"> jede Woche wiederholen (fester Termin)</label>'+
       '</div>'+
     '</div>';
   }).join("");
 
   /* Events */
-  document.querySelectorAll(".task .chk").forEach(b=> b.addEventListener("click", async ()=>{
-    const el = b.closest(".task"); const t = week[el.dataset.day].find(x=>x.id===el.dataset.id);
-    if(t){ t.done = !t.done; await saveWeek(); renderWeek(); }
+  document.querySelectorAll("#daysGrid .task .chk").forEach(b=> b.addEventListener("click", async ()=>{
+    const el = b.closest(".task"); const day = el.dataset.day; const id = el.dataset.id;
+    if(id.startsWith("r-")){
+      /* Fester Termin: Erledigt-Status gilt nur für diese Woche */
+      const k = id.slice(2)+"@"+day;
+      const idx = week.rdone.indexOf(k);
+      if(idx>=0) week.rdone.splice(idx,1); else week.rdone.push(k);
+    }else{
+      const t = week[day].find(x=>x.id===id);
+      if(!t) return;
+      t.done = !t.done;
+    }
+    await saveWeek(); renderWeek();
   }));
-  document.querySelectorAll(".task .t-del").forEach(b=> b.addEventListener("click", async ()=>{
-    const el = b.closest(".task");
-    week[el.dataset.day] = week[el.dataset.day].filter(x=>x.id!==el.dataset.id);
+  document.querySelectorAll("#daysGrid .task .t-del").forEach(b=> b.addEventListener("click", async ()=>{
+    const el = b.closest(".task"); const id = el.dataset.id;
+    if(id.startsWith("r-")){
+      routines = routines.filter(r=>("r-"+r.id)!==id);
+      await saveRoutines(); renderWeek();
+      toast("Fester Termin entfernt – er galt für jede Woche.");
+      return;
+    }
+    week[el.dataset.day] = week[el.dataset.day].filter(x=>x.id!==id);
     await saveWeek(); renderWeek();
   }));
   document.querySelectorAll("[data-toggle]").forEach(b=> b.addEventListener("click", ()=>{
@@ -1144,12 +944,19 @@ async function addTaskFromRow(day){
   const catInput = document.querySelector('[data-add-cat="'+day+'"]');
   const prioInput = document.querySelector('[data-add-prio="'+day+'"]');
   const durInput = document.querySelector('[data-add-duration="'+day+'"]');
+  const recInput = document.querySelector('[data-add-rec="'+day+'"]');
   const title = titleInput.value.trim();
   if(!title) return toast("Aufgabe eingeben.");
   const time = timeInput.value;
   const cat = catInput.value;
-  week[day].push(normalizeTask({id:newTaskId(), time, title, cat, priority: prioInput.value, duration: durInput.value, done:false}));
-  await saveWeek(); renderWeek();
+  if(recInput && recInput.checked){
+    routines.push({id:newTaskId(), day, time, title:cleanText(title, LIMITS.TASK_TITLE), cat, priority: prioInput.value, duration: Number(durInput.value)||30});
+    await saveRoutines(); renderWeek();
+    toast("Fester Termin angelegt – gilt ab jetzt jede Woche. ↻");
+  }else{
+    week[day].push(normalizeTask({id:newTaskId(), time, title, cat, priority: prioInput.value, duration: durInput.value, done:false}));
+    await saveWeek(); renderWeek();
+  }
   /* Eingabezeile offen lassen für die nächste Aufgabe */
   const row = document.getElementById("addrow-"+day);
   const tog = document.querySelector('[data-toggle="'+day+'"]');
@@ -1162,20 +969,7 @@ async function addTaskFromRow(day){
 }
 $("wkPrev").addEventListener("click", ()=>{ currentMonday.setDate(currentMonday.getDate()-7); loadWeek(); });
 $("wkNext").addEventListener("click", ()=>{ currentMonday.setDate(currentMonday.getDate()+7); loadWeek(); });
-document.querySelectorAll("[data-template]").forEach(b=> b.addEventListener("click", ()=> addTemplate(b.dataset.template)));
-
-async function addTemplate(kind){
-  const todayIdx = getMonday(new Date()).getTime() === currentMonday.getTime() ? (new Date().getDay()+6)%7 : 0;
-  const day = DAYS[todayIdx];
-  const templates = {
-    deep: {time:"09:00", title:"90 Minuten Fokusarbeit", cat:"Fokus", priority:"high", duration:90, notes:"Handy weg, ein klares Ergebnis."},
-    reset: {time:"18:00", title:"Wochenreset und Planung", cat:"Privat", priority:"high", duration:45, notes:"Kalender prüfen, Top 3 setzen, Puffer sichern."},
-    sport: {time:"18:30", title:"Training / Bewegung", cat:"Sport", priority:"medium", duration:60, notes:"Energie stabilisieren."},
-    review: {time:"20:30", title:"Tagesabschluss", cat:"Erholung", priority:"medium", duration:20, notes:"Abhaken, verschieben, morgen vorbereiten."}
-  };
-  week[day].push(normalizeTask(templates[kind] || templates.deep));
-  await saveWeek(); renderWeek(); toast("Vorlage hinzugefügt");
-}
+$("wkToday").addEventListener("click", ()=>{ currentMonday = getMonday(new Date()); loadWeek(); });
 
 /* ---- Woche einsprechen (Diktat → KI → Termine) ---- */
 let weekListening = false, weekRecog = null, weekBuffer = "";
@@ -1265,7 +1059,7 @@ async function parseWeekSpeech(text){
 let pendingParsed = [];
 function isDuplicateTask(day, title, time){
   const key = String(title||"").trim().toLowerCase();
-  return week[day].some(t=>{ const n = normalizeTask(t); return n.title.trim().toLowerCase() === key && n.time === (time||""); });
+  return dayTasks(day).some(n=> n.title.trim().toLowerCase() === key && n.time === (time||""));
 }
 function showParsePreview(items){
   pendingParsed = items;
@@ -1311,7 +1105,7 @@ $("parseConfirm").addEventListener("click", async ()=>{
     });
     pendingParsed = []; $("parseMask").style.display = "none";
     if(!count){ toast("Kein Eintrag ausgewählt – es wurde nichts gespeichert."); return; }
-    await saveWeek(); renderWeek();
+    await saveWeek(); renderWeek(); renderHome();
     toast(count+" Einträge eingetragen ✅");
   }finally{
     btn.disabled = false;
@@ -1319,14 +1113,177 @@ $("parseConfirm").addEventListener("click", async ()=>{
 });
 
 /* ============================================================
+   DASHBOARD (Startseite)
+   ============================================================ */
+function currentWeekView(){
+  const mon = getMonday(new Date());
+  const key = weekKey(mon);
+  if(key === weekKey(currentMonday)) return {data: week, key, isLoaded: true};
+  return {data: normalizeWeekObj(weekCache.get(key) || store._localGet(key)), key, isLoaded: false};
+}
+function greeting(){
+  const h = new Date().getHours();
+  return h < 11 ? "Guten Morgen" : h < 18 ? "Guten Tag" : "Guten Abend";
+}
+function renderHome(){
+  const now = new Date();
+  $("homeDate").textContent = now.toLocaleDateString("de-DE", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
+  $("homeGreeting").textContent = greeting();
+  const view = currentWeekView();
+  const todayIdx = (now.getDay()+6)%7;
+  const todayDay = DAYS[todayIdx];
+
+  /* Heute */
+  const today = dayTasks(todayDay, view.data).sort((a,b)=>(a.time||"99").localeCompare(b.time||"99"));
+  $("homeToday").innerHTML = today.length
+    ? '<div class="home-list">'+today.map(t=>
+        '<div class="task cat-'+esc(t.cat)+(t.done?' done':'')+'" data-day="'+todayDay+'" data-id="'+t.id+'">'+
+        '<button class="chk" aria-label="Erledigt umschalten">'+(t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>':'')+'</button>'+
+        '<span class="t-time">'+esc(t.time||"–")+'</span>'+
+        '<span class="t-main"><span class="t-title">'+esc(t.title)+'</span></span>'+
+        (t.routine?'<span class="tag rec">↻</span>':'')+
+        '</div>').join("")+'</div>'
+    : '<div class="home-empty">Heute ist nichts geplant. Genieß den Freiraum – oder sprich kurz ein, was ansteht.</div>';
+
+  /* Wichtig diese Woche: offene wichtige Einträge sowie kommende Termine mit Uhrzeit */
+  const upcoming = [];
+  DAYS.forEach((d,i)=>{
+    dayTasks(d, view.data).forEach(t=>{
+      if(t.done) return;
+      if(t.priority==="high" || t.cat==="Fokus" || (t.time && i>todayIdx)) upcoming.push({day:d, di:i, t});
+    });
+  });
+  upcoming.sort((a,b)=> ((b.t.priority==="high")-(a.t.priority==="high")) || (a.di-b.di) || String(a.t.time||"99").localeCompare(String(b.t.time||"99")));
+  const upList = upcoming.slice(0,6);
+  $("homeUpcoming").innerHTML = (upList.length
+    ? '<div class="home-list">'+upList.map(x=>
+        '<div class="task cat-'+esc(x.t.cat)+'">'+
+        '<span class="t-time" style="min-width:26px">'+DAYSHORT[x.day]+'</span>'+
+        '<span class="t-time">'+esc(x.t.time||"–")+'</span>'+
+        '<span class="t-main"><span class="t-title">'+esc(x.t.title)+'</span></span>'+
+        (x.t.priority==="high"?'<span class="tag prio-high">Wichtig</span>':'')+
+        (x.t.routine?'<span class="tag rec">↻</span>':'')+
+        '</div>').join("")+'</div>'
+    : '<div class="home-empty">Noch keine wichtigen Termine markiert. Plane deine Woche oder markiere Aufgaben als „Wichtig“.</div>')
+    + '<button class="home-link" id="homeToWeek">Ganze Woche ansehen →</button>';
+  $("homeToWeek").addEventListener("click", ()=>{ currentMonday = getMonday(new Date()); loadWeek(); switchView("week"); });
+
+  /* Zu beachten */
+  const notes = [];
+  let overdue = 0;
+  for(let i=0;i<todayIdx;i++){ overdue += dayTasks(DAYS[i], view.data).filter(t=>!t.done).length; }
+  if(overdue) notes.push(overdue+" Aufgabe(n) von früheren Tagen dieser Woche sind noch offen – hake sie ab oder plane sie neu.");
+  const confDays = new Set();
+  DAYS.forEach(d=>{
+    const byTime = dayTasks(d, view.data).filter(t=>t.time);
+    byTime.forEach((t,i2)=>{
+      const start = minutesOf(t.time), end2 = start + (Number(t.duration)||30);
+      byTime.slice(i2+1).forEach(o=>{
+        const os = minutesOf(o.time), oe = os + (Number(o.duration)||30);
+        if(start!==null && os!==null && start<oe && os<end2) confDays.add(d);
+      });
+    });
+  });
+  if(confDays.size) notes.push("Zeitüberschneidung am "+[...confDays].map(d=>DAYNAMES[d]).join(", ")+" – prüfe die Uhrzeiten.");
+  const full = DAYS.filter(d=> dayTasks(d, view.data).reduce((sum,t)=>sum+(Number(t.duration)||30),0) > 420);
+  if(full.length) notes.push("Sehr voller Tag: "+full.map(d=>DAYNAMES[d]).join(", ")+". Plane Puffer ein.");
+  const all = DAYS.flatMap(d=>dayTasks(d, view.data));
+  if(all.length && !all.some(t=>t.cat==="Erholung")) notes.push("Diese Woche ist keine Erholung eingeplant – ein freier Block tut gut.");
+  $("homeNotes").innerHTML = notes.length
+    ? notes.slice(0,3).map(n=>'<div class="coach-item">'+esc(n)+'</div>').join("")
+    : '<div class="coach-item">Alles im grünen Bereich – nichts Dringendes zu beachten.</div>';
+
+  /* Abhaken direkt auf der Startseite */
+  $("homeToday").querySelectorAll(".task .chk").forEach(b=> b.addEventListener("click", async ()=>{
+    const el = b.closest(".task"); const id = el.dataset.id; const day = el.dataset.day;
+    const v = currentWeekView();
+    if(id.startsWith("r-")){
+      const k = id.slice(2)+"@"+day;
+      const idx = v.data.rdone.indexOf(k);
+      if(idx>=0) v.data.rdone.splice(idx,1); else v.data.rdone.push(k);
+    }else{
+      const t = v.data[day].find(x=>x.id===id);
+      if(t) t.done = !t.done;
+    }
+    weekCache.set(v.key, v.data);
+    await store.set(v.key, v.data);
+    if(v.isLoaded) renderWeek();
+    renderHome();
+  }));
+}
+
+/* ============================================================
+   MENÜ (Drawer): Theme, Kalender, Sprache, Konto
+   ============================================================ */
+function openDrawer(){ $("drawer").classList.add("open"); $("drawerMask").classList.add("open"); renderCal(); }
+function closeDrawer(){ $("drawer").classList.remove("open"); $("drawerMask").classList.remove("open"); }
+$("burgerBtn").addEventListener("click", openDrawer);
+$("drawerClose").addEventListener("click", closeDrawer);
+$("drawerMask").addEventListener("click", closeDrawer);
+
+/* ---- Theme: Hell / Dunkel / System ---- */
+function themePref(){ return store._localGet("themePref") || "system"; }
+function applyTheme(pref){
+  const dark = pref === "dark" || (pref === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.content = dark ? "#0F1115" : "#F4F5F7";
+  document.querySelectorAll("[data-theme-opt]").forEach(b=> b.classList.toggle("on", b.dataset.themeOpt === pref));
+}
+document.querySelectorAll("[data-theme-opt]").forEach(b=> b.addEventListener("click", ()=>{
+  store._localSet("themePref", b.dataset.themeOpt);
+  applyTheme(b.dataset.themeOpt);
+}));
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=> applyTheme(themePref()));
+applyTheme(themePref());
+
+/* ---- Sprache der Spracheingabe merken ---- */
+(function(){
+  const saved = store._localGet("lang");
+  if(saved && $("langSel").querySelector('option[value="'+saved+'"]')) $("langSel").value = saved;
+  $("langSel").addEventListener("change", ()=> store._localSet("lang", $("langSel").value));
+})();
+
+/* ---- Mini-Kalender: Monate voraus planen ---- */
+let calDate = new Date(); calDate.setDate(1);
+const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+function renderCal(){
+  const y = calDate.getFullYear(), m = calDate.getMonth();
+  const startIdx = (new Date(y, m, 1).getDay()+6)%7;
+  const todayKey = localDateKey(new Date());
+  const selMon = weekKey(currentMonday);
+  let html = '<div class="cal-head"><button id="calPrev" aria-label="Vorheriger Monat">←</button><b>'+MONTHS[m]+" "+y+'</b><button id="calNext" aria-label="Nächster Monat">→</button></div><div class="cal-grid">';
+  html += ["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>'<span class="cal-dow">'+x+'</span>').join("");
+  for(let i=0;i<42;i++){
+    const date = new Date(y, m, 1 - startIdx + i);
+    if(i >= 35 && date.getMonth() !== m) break;
+    const cls = (date.getMonth()===m ? '' : 'other ')
+      + (localDateKey(date)===todayKey ? 'today ' : '')
+      + (weekKey(getMonday(date))===selMon ? 'selweek' : '');
+    html += '<button data-cal="'+localDateKey(date)+'" class="'+cls.trim()+'">'+date.getDate()+'</button>';
+  }
+  html += '</div>';
+  $("miniCal").innerHTML = html;
+  $("calPrev").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()-1); renderCal(); });
+  $("calNext").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()+1); renderCal(); });
+  $("miniCal").querySelectorAll("[data-cal]").forEach(b=> b.addEventListener("click", ()=>{
+    const [yy,mm,dd] = b.dataset.cal.split("-").map(Number);
+    currentMonday = getMonday(new Date(yy, mm-1, dd));
+    loadWeek();
+    closeDrawer();
+    switchView("week");
+  }));
+}
+
+/* ============================================================
    KI-WOCHENANALYSE
    ============================================================ */
 $("analyzeBtn").addEventListener("click", ()=> aiBusy($("analyzeBtn"), analyzeWeek));
 async function analyzeWeek(){
-  const total = DAYS.reduce((n,d)=>n+week[d].length,0);
+  const total = DAYS.reduce((n,d)=>n+dayTasks(d).length,0);
   if(total === 0){ toast("Deine Woche ist noch leer – plane erst etwas."); return; }
   const weekDesc = DAYS.map(d=>{
-    const tasks = week[d].map(t=>(t.time||"ohne Zeit")+" "+t.title+" ["+t.cat+"]"+(t.done?" (erledigt)":"")).join("; ");
+    const tasks = dayTasks(d).map(t=>(t.time||"ohne Zeit")+" "+t.title+" ["+t.cat+"]"+(t.done?" (erledigt)":"")).join("; ");
     return DAYNAMES[d]+": "+(tasks||"nichts geplant");
   }).join("\n");
   const sys = 'Du bist ein Produktivitäts- und Lern-Coach. Bewerte den Wochenplan des Nutzers: Balance (Lernen/Arbeit/Sport/Erholung), realistische Zeitplanung, Pausen, Lern-Effizienz (Spaced Repetition, feste Lernblöcke, schwere Aufgaben zu Hochleistungszeiten, Pomodoro), freie Tage. Sei konkret und beziehe dich auf die tatsächlichen Einträge. Antworte NUR als JSON: {"score": 0-100, "fazit": "1-2 Sätze Gesamturteil", "staerken": ["…","…"], "verbesserungen": ["konkreter Vorschlag mit Bezug auf den Plan", "…"], "lerntipps": ["Lern-Tipp bezogen auf die Lerneinträge", "…"]}. Jeweils 2-4 Punkte pro Liste, auf Deutsch, direkt und freundlich (du-Form).';
@@ -1346,7 +1303,7 @@ function analyzeWeekLocal(){
   const total = allTasks.length;
   const done = allTasks.filter(t=>t.done).length;
   const counts = {}; CATS.forEach(c=>counts[c]=allTasks.filter(t=>t.cat===c).length);
-  const plannedDays = DAYS.filter(d=>week[d].length).length;
+  const plannedDays = DAYS.filter(d=>dayTasks(d).length).length;
   const insights = getWeekInsights();
   let score = 45 + Math.min(20, plannedDays*3) + (counts.Sport ? 8 : 0) + (counts.Lernen ? 8 : 0) + (counts.Fokus ? 8 : 0) + (counts.Erholung ? 8 : 0) + Math.round((done/Math.max(1,total))*15);
   if(total > 22) score -= 10;
@@ -1487,6 +1444,7 @@ $("authSubmit").addEventListener("click", async ()=>{
 
 $("authGuest").addEventListener("click", async ()=>{
   currentUser = null; store.mode = "local";
+  store._localSet("guestMode", true); // Wahl merken: Maske nicht bei jedem Start zeigen
   hideAuthMask();
   await loadAllUserData();
 });
@@ -1494,6 +1452,7 @@ $("authGuest").addEventListener("click", async ()=>{
 async function onLoggedIn(user){
   currentUser = user;
   store.mode = "cloud";
+  store._localSet("guestMode", false);
   hideAuthMask();
   await loadAllUserData();
   toast("Angemeldet ✅");
@@ -1524,10 +1483,12 @@ function renderAccountBar(){
    INIT
    ============================================================ */
 async function loadAllUserData(){
-  snippets = (await store.get("snippets")) || [];
-  history = (await store.get("history")) || [];
-  renderSnippets(); renderHistory();
+  routines = (await store.get("routines")) || [];
+  if(!Array.isArray(routines)) routines = [];
+  weekCache.clear();
+  currentMonday = getMonday(new Date());
   await loadWeek();
+  renderHome();
   renderAccountBar();
   updateAiStatus();
 }
@@ -1546,6 +1507,9 @@ function updateAiStatus(label){
     const { data } = await sb.auth.getSession();
     if(data && data.session){
       await onLoggedInSilent(data.session.user);
+    }else if(store._localGet("guestMode")){
+      currentUser = null; store.mode = "local";
+      await loadAllUserData();
     }else{
       showAuthMask();
     }
