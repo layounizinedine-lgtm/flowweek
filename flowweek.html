@@ -206,11 +206,21 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 /* ---------- Sprach-Vorschau ---------- */
 .preview-day{margin-bottom:10px}
 .pv-dayname{font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;color:var(--accent);margin-bottom:6px}
-.preview-row{display:grid;grid-template-columns:auto 86px 1fr 92px;gap:6px;align-items:center;margin-bottom:6px}
+.preview-row{display:grid;grid-template-columns:auto 84px 1fr 92px auto;gap:6px;align-items:center;margin-bottom:6px}
 .preview-row input,.preview-row select{padding:7px 8px;font-size:13px}
 .preview-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
+.pv-del{color:var(--muted);padding:4px;border-radius:6px}
+.pv-del:hover{color:var(--red);background:var(--surface2)}
+.pv-del svg{width:16px;height:16px;display:block}
 .pv-dup{grid-column:2/-1;font-size:11.5px;color:var(--muted);margin-top:-2px}
-@media(max-width:520px){ .preview-row{grid-template-columns:auto 86px 1fr} .preview-row select{grid-column:2/-1} }
+.pv-add{border-top:1px solid var(--line);margin-top:8px}
+.pv-addrow{display:grid;grid-template-columns:120px 84px 1fr 92px auto;gap:6px;align-items:center}
+.pv-addrow input,.pv-addrow select{padding:7px 8px;font-size:13px}
+.pv-addrow .btn{padding:0;justify-content:center;min-height:34px}
+@media(max-width:520px){
+  .preview-row{grid-template-columns:auto 84px 1fr auto} .preview-row select{grid-column:2/4}
+  .pv-addrow{grid-template-columns:1fr 84px auto} .pv-addrow #pvAddTitle{grid-column:1/-1} .pv-addrow select{grid-column:1/3}
+}
 
 /* ---------- Bearbeiten ---------- */
 .editgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -285,7 +295,19 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
   <div class="authcard" style="max-width:480px">
     <div class="eyebrow">Ich habe Folgendes verstanden</div>
     <div class="hint" id="parseWeekHint" style="margin:4px 0 12px"></div>
-    <div id="parseList" style="max-height:52vh;overflow:auto"></div>
+    <div id="parseList" style="max-height:44vh;overflow:auto"></div>
+    <div class="pv-add">
+      <div class="eyebrow" style="margin:12px 0 6px">Eintrag hinzufügen</div>
+      <div class="pv-addrow">
+        <input type="date" id="pvAddDate" aria-label="Datum">
+        <input type="time" id="pvAddTime" aria-label="Uhrzeit">
+        <input id="pvAddTitle" placeholder="Was steht an?" maxlength="120" aria-label="Titel">
+        <select id="pvAddCat" aria-label="Kategorie"><option>Privat</option><option>Fokus</option><option>Lernen</option><option>Arbeit</option><option>Sport</option><option>Erholung</option></select>
+        <button class="btn primary" id="pvAddBtn" aria-label="Hinzufügen">+</button>
+      </div>
+      <button class="btn ghost" id="pvAddMic" style="margin-top:8px">🎙️ per Sprache hinzufügen</button>
+      <div class="hint" id="pvAddMicStatus" style="display:none;margin-top:6px"></div>
+    </div>
     <div class="btnrow" style="margin-top:14px">
       <button class="btn primary" id="parseConfirm">Eintragen</button>
       <button class="btn ghost" id="parseCancel">Verwerfen</button>
@@ -1050,7 +1072,7 @@ $("wkNext").addEventListener("click", ()=>{ currentMonday.setDate(currentMonday.
 $("wkToday").addEventListener("click", ()=>{ currentMonday = getMonday(new Date()); loadWeek(); });
 
 /* ---- Woche einsprechen (Diktat → KI → Termine) ---- */
-let weekListening = false, weekRecog = null, weekBuffer = "";
+let weekListening = false, weekRecog = null, weekBuffer = "", weekInterim = "";
 $("weekMicBtn").addEventListener("click", ()=>{
   if(weekListening){ weekRecog && weekRecog.stop(); return; }
   if(!speechSupported()){ toast("Spracherkennung nicht verfügbar in diesem Browser."); return; }
@@ -1059,7 +1081,7 @@ $("weekMicBtn").addEventListener("click", ()=>{
     currentMonday = getMonday(new Date());
     loadWeek();
   }
-  weekBuffer = "";
+  weekBuffer = ""; weekInterim = "";
   weekRecog = new SR();
   weekRecog.lang = $("langSel").value || "de-DE"; weekRecog.continuous = true; weekRecog.interimResults = true;
   weekListening = true;
@@ -1071,20 +1093,26 @@ $("weekMicBtn").addEventListener("click", ()=>{
       if(ev.results[i].isFinal) weekBuffer = cleanText(weekBuffer + ev.results[i][0].transcript+" ");
       else interim += cleanText(ev.results[i][0].transcript, 1000);
     }
+    /* Letztes vorläufiges Stück merken: sonst geht der zuletzt gesagte Termin
+       verloren, wenn beim Stoppen noch kein finales Ergebnis kam. */
+    weekInterim = interim;
     st.textContent = "„"+(weekBuffer+interim).trim()+"“";
   };
   weekRecog.onend = async ()=>{
     if(!weekListening) return;
     weekListening = false;
     $("weekMicBtn").innerHTML = "🎙️ Woche einsprechen";
-    if(!weekBuffer.trim()){
+    /* Puffer + noch nicht finalisiertes letztes Stück zusammenführen */
+    const spoken = cleanText((weekBuffer + " " + weekInterim).trim());
+    weekBuffer = spoken; weekInterim = "";
+    if(!spoken){
       st.style.display="none";
       toast("Ich habe nichts verstanden. Bitte sprich noch einmal – es wurde nichts gespeichert.");
       return;
     }
     st.textContent = "Deine Planung wird gelesen …";
     await aiBusy($("weekMicBtn"), async ()=>{
-      await parseWeekSpeech(weekBuffer.trim());
+      await parseWeekSpeech(spoken);
       st.style.display = "none";
     });
   };
@@ -1098,7 +1126,8 @@ $("weekMicBtn").addEventListener("click", ()=>{
   };
   try{ weekRecog.start(); }catch(e){}
 });
-async function parseWeekSpeech(text){
+/* Gesprochenen Text → strukturierte Einträge (KI, mit lokalem Fallback). */
+async function parseSpeechToItems(text){
   text = cleanText(text);
   const today = new Date();
   const todayIdx = (today.getDay()+6)%7;
@@ -1107,8 +1136,9 @@ async function parseWeekSpeech(text){
   const sys = 'Du wandelst frei gesprochene Terminplanung in JSON um. Jeder Eintrag hat: "date" (konkretes Datum YYYY-MM-DD), "time" ("HH:MM" oder "" wenn keine Uhrzeit genannt), "title" (kurz, ohne Füllwörter), "category" (genau eine aus ["Fokus","Lernen","Arbeit","Sport","Privat","Erholung"]), "priority" ("high","medium","normal","low"), "duration" (Minuten, realistisch schätzen). '+
     'DATUM: Wochentagsnamen beziehen sich auf die aktuelle Woche (Zuordnung steht im Kontext). "heute/morgen/übermorgen/am Wochenende" anhand des heutigen Datums auflösen. Absolute Angaben wie "am 11.08." oder "am 3. August" ergeben das nächste zukünftige Vorkommen (Monats- und Jahreswechsel beachten) – auch wenn das Datum außerhalb der aktuellen Woche liegt. '+
     'UHRZEIT: "um 16" ohne das Wort "Uhr" bedeutet 16:00. "abends"≈19:00, "morgens"≈08:00, "mittags"≈12:00, "nachmittags"≈15:00. Jede Uhrzeit gehört NUR zu ihrem eigenen Eintrag. '+
-    'MEHRERE EINTRÄGE: Wenn mehrere Tage, Uhrzeiten oder Aktivitäten genannt werden ("dann", "danach", "und um X"), erzeuge für JEDE Aktivität einen EIGENEN Eintrag – niemals zusammenfassen und niemals Inhalte verschiedener Tage mischen. '+
-    'KORREKTUREN UND PAUSEN: Der Text ist gesprochene Sprache. Ignoriere Füllwörter, Versprecher und Denkpausen ("ähm", "Moment", "warte kurz"). Wenn der Sprecher sich korrigiert ("Dienstag 15 Uhr – nein, mach daraus Mittwoch 16 Uhr"), übernimm NUR die letzte Version und erzeuge KEINEN Eintrag für die verworfene. Wenn der Sprecher zwischendurch erkennbar mit jemand anderem spricht oder etwas sagt, das kein Termin/keine Aufgabe ist ("ja komm rein", "ich ruf dich gleich zurück"), lass diesen Teil komplett weg. '+
+    'MEHRERE EINTRÄGE: Wenn mehrere Tage, Uhrzeiten oder Aktivitäten genannt werden ("dann", "danach", "und um X"), erzeuge für JEDE Aktivität einen EIGENEN Eintrag – niemals zusammenfassen und niemals Inhalte verschiedener Tage mischen. WICHTIG: Der ZULETZT genannte Termin wird oft vergessen – achte besonders darauf, auch die letzte Aktivität am Satzende als eigenen Eintrag zu erfassen. '+
+    'KORREKTUREN UND PAUSEN: Der Text ist gesprochene Sprache. Ignoriere Füllwörter, Versprecher und Denkpausen ("ähm", "Moment", "warte kurz", "also", "quasi"). Wenn der Sprecher sich korrigiert – egal ob Tag, Uhrzeit, Ort oder Inhalt ("Dienstag 15 Uhr – nein, mach daraus Mittwoch 16 Uhr", "um 3, ähm, eher um 4", "mit Ali, nein mit Sara") – übernimm NUR die letzte, korrigierte Version und erzeuge KEINEN Eintrag für die verworfene. Signalwörter für Korrekturen: "nein", "doch", "eher", "besser", "ich meine", "quatsch", "warte", "sorry". '+
+    'NEBENGESPRÄCHE: Wenn der Sprecher zwischendurch erkennbar mit jemand anderem spricht oder etwas sagt, das kein Termin/keine Aufgabe ist ("ja komm rein", "ich ruf dich gleich zurück", "einen Moment bitte"), lass diesen Teil komplett weg. '+
     'ERFINDE NICHTS: Nur Einträge erzeugen, die der Sprecher wirklich als Plan genannt hat, keine Duplikate. Antworte NUR mit einem JSON-Array wie: [{"date":"2026-07-14","time":"09:00","title":"Mathe lernen","category":"Lernen","priority":"high","duration":60}]';
   let tasks;
   try{
@@ -1139,27 +1169,32 @@ async function parseWeekSpeech(text){
       date = localDateKey(x);
     }
     if(!date) continue;
-    const [yy,mm,dd] = date.split("-").map(Number);
-    const day = PARSE_DAYS[(new Date(yy, mm-1, dd).getDay()+6)%7];
-    const task = normalizeTask({
-      id:newTaskId(),
+    items.push(makePreviewItem(date, {
       time: (t.time||"").match(/^\d{2}:\d{2}$/) ? t.time : "",
       title: cleanText(t.title, LIMITS.TASK_TITLE),
       cat: CATS.includes(t.category) ? t.category : "Privat",
       priority: PRIOS.includes(t.priority) ? t.priority : "normal",
-      duration: Number(t.duration) || 30,
-      done:false
-    });
-    // Doppelte innerhalb derselben Aufnahme überspringen
-    if(items.some(x=>x.date===date && x.task.title.toLowerCase()===task.title.toLowerCase() && x.task.time===task.time)) continue;
-    items.push({date, day, task, duplicate: isDuplicateTask(date, day, task.title, task.time)});
+      duration: Number(t.duration) || 30
+    }, items));
   }
+  return items.filter(Boolean);
+}
+async function parseWeekSpeech(text){
+  const items = await parseSpeechToItems(text);
   if(!items.length) throw new Error("Ich konnte keine Aufgaben erkennen. Sag z. B. „Montag um 9 Mathe lernen“. Es wurde nichts gespeichert.");
   showParsePreview(items);
 }
 
 /* ---- Vorschau: erst bestätigen, dann speichern ---- */
-let pendingParsed = [];
+let pendingParsed = [], pvUid = 0;
+/* Baut ein Vorschau-Item; überspringt (gibt null) exakte Duplikate innerhalb derselben Liste. */
+function makePreviewItem(date, taskLike, existing){
+  const [yy,mm,dd] = date.split("-").map(Number);
+  const day = PARSE_DAYS[(new Date(yy, mm-1, dd).getDay()+6)%7];
+  const task = normalizeTask({ id:newTaskId(), done:false, ...taskLike });
+  if(existing && existing.some(x=> x && x.date===date && x.task.title.toLowerCase()===task.title.toLowerCase() && x.task.time===task.time)) return null;
+  return {uid: ++pvUid, date, day, task, duplicate: isDuplicateTask(date, day, task.title, task.time)};
+}
 function weekDataForDate(dateStr){
   const [yy,mm,dd] = dateStr.split("-").map(Number);
   const mon = getMonday(new Date(yy, mm-1, dd));
@@ -1176,51 +1211,142 @@ function previewDayLabel(item){
   const [yy,mm,dd] = item.date.split("-").map(Number);
   return DAYNAMES[item.day]+", "+fmtDate(new Date(yy, mm-1, dd))+(yy !== new Date().getFullYear() ? yy : "");
 }
-function showParsePreview(items){
-  pendingParsed = items;
-  $("parseWeekHint").textContent = "Passe die Einträge an oder wähle sie ab. Jeder Eintrag wird bei seinem Datum gespeichert – erst, wenn du auf „Eintragen“ tippst.";
+/* DOM-Änderungen (Häkchen, Uhrzeit, Titel, Kategorie) in pendingParsed zurückschreiben,
+   damit sie beim Neu-Rendern (Löschen/Hinzufügen) nicht verloren gehen. */
+function syncPreviewEdits(){
+  pendingParsed.forEach(x=>{
+    const on = document.querySelector('[data-pv-on="'+x.uid+'"]');
+    const timeEl = document.querySelector('[data-pv-time="'+x.uid+'"]');
+    const titleEl = document.querySelector('[data-pv-title="'+x.uid+'"]');
+    const catEl = document.querySelector('[data-pv-cat="'+x.uid+'"]');
+    if(on) x.on = on.checked;
+    if(timeEl) x.task.time = timeEl.value;
+    if(titleEl) x.task.title = cleanText(titleEl.value, LIMITS.TASK_TITLE);
+    if(catEl) x.task.cat = catEl.value;
+  });
+}
+function renderPreviewList(){
+  const items = pendingParsed;
   const dates = [...new Set(items.map(x=>x.date))].sort();
-  $("parseList").innerHTML = dates.map(date=>{
-    const group = items.map((x,idx)=>({x,idx})).filter(o=>o.x.date===date);
-    const rows = group.map(o=>{
-      const t = o.x.task;
+  $("parseList").innerHTML = dates.length ? dates.map(date=>{
+    const group = items.filter(x=>x.date===date);
+    const rows = group.map(x=>{
+      const t = x.task;
+      const checked = (x.on !== undefined ? x.on : !x.duplicate);
       return '<div class="preview-row">'+
-        '<input type="checkbox" data-pv-on="'+o.idx+'"'+(o.x.duplicate?'':' checked')+' aria-label="Eintrag übernehmen">'+
-        '<input type="time" value="'+esc(t.time)+'" data-pv-time="'+o.idx+'" aria-label="Uhrzeit">'+
-        '<input value="'+esc(t.title)+'" maxlength="'+LIMITS.TASK_TITLE+'" data-pv-title="'+o.idx+'" aria-label="Titel">'+
-        '<select data-pv-cat="'+o.idx+'" aria-label="Kategorie">'+CATS.map(c=>'<option'+(c===t.cat?' selected':'')+'>'+c+'</option>').join("")+'</select>'+
-        (o.x.duplicate?'<div class="pv-dup">Steht schon so im Plan – nur bei Bedarf anhaken.</div>':'')+
+        '<input type="checkbox" data-pv-on="'+x.uid+'"'+(checked?' checked':'')+' aria-label="Eintrag übernehmen">'+
+        '<input type="time" value="'+esc(t.time)+'" data-pv-time="'+x.uid+'" aria-label="Uhrzeit">'+
+        '<input value="'+esc(t.title)+'" maxlength="'+LIMITS.TASK_TITLE+'" data-pv-title="'+x.uid+'" aria-label="Titel">'+
+        '<select data-pv-cat="'+x.uid+'" aria-label="Kategorie">'+CATS.map(c=>'<option'+(c===t.cat?' selected':'')+'>'+c+'</option>').join("")+'</select>'+
+        '<button class="pv-del" data-pv-del="'+x.uid+'" aria-label="Eintrag entfernen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>'+
+        (x.duplicate?'<div class="pv-dup">Steht schon so im Plan – nur bei Bedarf anhaken.</div>':'')+
       '</div>';
     }).join("");
-    return '<div class="preview-day"><div class="pv-dayname">'+previewDayLabel(group[0].x)+'</div>'+rows+'</div>';
-  }).join("");
+    return '<div class="preview-day"><div class="pv-dayname">'+previewDayLabel(group[0])+'</div>'+rows+'</div>';
+  }).join("") : '<div class="hint">Keine Einträge mehr. Füge unten einen hinzu oder tippe auf „Verwerfen“.</div>';
+  $("parseList").querySelectorAll("[data-pv-del]").forEach(b=> b.addEventListener("click", ()=>{
+    syncPreviewEdits();
+    pendingParsed = pendingParsed.filter(x=> String(x.uid) !== b.dataset.pvDel);
+    renderPreviewList();
+  }));
+}
+function showParsePreview(items){
+  pendingParsed = items;
+  $("parseWeekHint").textContent = "Passe die Einträge an, entferne sie mit ✕ oder füge unten neue hinzu. Gespeichert wird erst mit „Eintragen“.";
+  $("pvAddDate").value = items.length ? items[0].date : localDateKey(new Date());
+  renderPreviewList();
   $("parseMask").style.display = "flex";
 }
-$("parseCancel").addEventListener("click", ()=>{
+/* Eintrag per Tippen hinzufügen */
+$("pvAddBtn").addEventListener("click", ()=>{
+  const dateVal = $("pvAddDate").value; // YYYY-MM-DD vom date-Input
+  const title = cleanText($("pvAddTitle").value.trim(), LIMITS.TASK_TITLE);
+  if(!dateVal){ toast("Bitte ein Datum wählen."); return; }
+  if(!title){ toast("Bitte einen Titel eingeben."); $("pvAddTitle").focus(); return; }
+  syncPreviewEdits();
+  const item = makePreviewItem(dateVal, { time: $("pvAddTime").value || "", title, cat: $("pvAddCat").value }, pendingParsed);
+  if(!item){ toast("Dieser Eintrag steht bereits in der Liste."); return; }
+  item.on = true;
+  pendingParsed.push(item);
+  renderPreviewList();
+  $("pvAddTitle").value = ""; $("pvAddTime").value = "";
+  toast("Hinzugefügt – prüfe die Liste und tippe auf „Eintragen“.");
+});
+$("pvAddTitle").addEventListener("keydown", e=>{ if(e.key==="Enter") $("pvAddBtn").click(); });
+/* Einträge per Sprache ergänzen (in die laufende Vorschau) */
+let pvMicListening = false, pvMicRecog = null, pvMicBuf = "", pvMicInterim = "";
+$("pvAddMic").addEventListener("click", ()=>{
+  if(pvMicListening){ pvMicRecog && pvMicRecog.stop(); return; }
+  if(!speechSupported()){ toast("Spracherkennung nicht verfügbar in diesem Browser."); return; }
+  pvMicBuf = ""; pvMicInterim = "";
+  pvMicRecog = new SR();
+  pvMicRecog.lang = $("langSel").value || "de-DE"; pvMicRecog.continuous = true; pvMicRecog.interimResults = true;
+  pvMicListening = true;
+  $("pvAddMic").textContent = "⏹ Fertig – hinzufügen";
+  const st = $("pvAddMicStatus"); st.style.display = "block"; st.textContent = "Ich höre zu …";
+  pvMicRecog.onresult = ev=>{
+    let interim = "";
+    for(let i=ev.resultIndex;i<ev.results.length;i++){
+      if(ev.results[i].isFinal) pvMicBuf = cleanText(pvMicBuf + ev.results[i][0].transcript + " ");
+      else interim += cleanText(ev.results[i][0].transcript, 1000);
+    }
+    pvMicInterim = interim;
+    st.textContent = "„"+(pvMicBuf+interim).trim()+"“";
+  };
+  pvMicRecog.onend = async ()=>{
+    if(!pvMicListening) return;
+    pvMicListening = false;
+    $("pvAddMic").textContent = "🎙️ per Sprache hinzufügen";
+    const spoken = cleanText((pvMicBuf + " " + pvMicInterim).trim());
+    if(!spoken){ st.style.display = "none"; return; }
+    st.textContent = "Wird gelesen …";
+    await aiBusy($("pvAddMic"), async ()=>{
+      syncPreviewEdits();
+      const items = await parseSpeechToItems(spoken);
+      let added = 0;
+      items.forEach(it=>{
+        if(!it) return;
+        // Duplikate gegen die bereits vorhandene Vorschau prüfen
+        const dup = pendingParsed.some(x=> x.date===it.date && x.task.title.toLowerCase()===it.task.title.toLowerCase() && x.task.time===it.task.time);
+        if(dup) return;
+        it.on = true; pendingParsed.push(it); added++;
+      });
+      renderPreviewList();
+      st.style.display = "none";
+      toast(added ? (added+" Eintrag(e) ergänzt.") : "Nichts Neues erkannt.");
+    });
+  };
+  pvMicRecog.onerror = (ev)=>{
+    pvMicListening = false; $("pvAddMic").textContent = "🎙️ per Sprache hinzufügen"; st.style.display = "none";
+    if(ev && (ev.error === "not-allowed" || ev.error === "service-not-allowed")) toast("Mikrofon-Zugriff blockiert.");
+  };
+  try{ pvMicRecog.start(); }catch(e){}
+});
+function closeParseMask(){
+  if(pvMicListening){ pvMicListening = false; try{ pvMicRecog && pvMicRecog.stop(); }catch(e){} }
+  $("pvAddMic").textContent = "🎙️ per Sprache hinzufügen"; $("pvAddMicStatus").style.display = "none";
   pendingParsed = []; $("parseMask").style.display = "none";
+}
+$("parseCancel").addEventListener("click", ()=>{
+  closeParseMask();
   toast("Verworfen – es wurde nichts gespeichert.");
 });
 $("parseConfirm").addEventListener("click", async ()=>{
   const btn = $("parseConfirm");
   if(btn.disabled) return;
+  syncPreviewEdits();
   btn.disabled = true;
   try{
     /* Bestätigte Einträge einsammeln und nach Ziel-Woche gruppieren */
     const confirmed = [];
-    pendingParsed.forEach((x, idx)=>{
-      const on = document.querySelector('[data-pv-on="'+idx+'"]');
-      if(!on || !on.checked) return;
-      const titleEl = document.querySelector('[data-pv-title="'+idx+'"]');
-      const timeEl = document.querySelector('[data-pv-time="'+idx+'"]');
-      const catEl = document.querySelector('[data-pv-cat="'+idx+'"]');
-      const title = cleanText(titleEl ? titleEl.value : x.task.title, LIMITS.TASK_TITLE).trim();
+    pendingParsed.forEach(x=>{
+      if(x.on === false) return;
+      const title = cleanText(x.task.title, LIMITS.TASK_TITLE).trim();
       if(!title) return;
-      confirmed.push({date:x.date, day:x.day, task: normalizeTask({ ...x.task, id:newTaskId(), title,
-        time: timeEl ? timeEl.value : x.task.time,
-        cat: catEl ? catEl.value : x.task.cat })});
+      confirmed.push({date:x.date, day:x.day, task: normalizeTask({ ...x.task, id:newTaskId(), title })});
     });
-    pendingParsed = []; $("parseMask").style.display = "none";
-    if(!confirmed.length){ toast("Kein Eintrag ausgewählt – es wurde nichts gespeichert."); return; }
+    if(!confirmed.length){ btn.disabled = false; toast("Kein Eintrag ausgewählt – es wurde nichts gespeichert."); return; }
+    closeParseMask();
     const byWeek = new Map();
     confirmed.forEach(c=>{
       const [yy,mm,dd] = c.date.split("-").map(Number);

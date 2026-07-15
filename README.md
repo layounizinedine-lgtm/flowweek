@@ -52,6 +52,11 @@ Getestet werden Datumsberechnung (inkl. Jahreswechsel und Sommerzeit), relative 
 
 ## Changelog
 
+### 2.2.0 (2026-07-13)
+- Spracheingabe verliert nicht mehr den zuletzt gesagten Termin: Das letzte, noch nicht finalisierte Sprachstück wird beim Stoppen mit übernommen.
+- Vorschau ist voll bearbeitbar: Einträge lassen sich per ✕ entfernen und über ein Formular per Tippen **oder** per Sprache ergänzen; Änderungen an Titel/Uhrzeit/Kategorie bleiben beim Umbauen erhalten.
+- Selbstkorrekturen werden zuverlässiger erkannt (Tag, Uhrzeit, Ort und Inhalt; Signalwörter „nein/doch/eher/besser/ich meine/quatsch/warte/sorry“); der Prompt weist die KI ausdrücklich an, den letzten Termin nicht zu vergessen.
+
 ### 2.1.0 (2026-07-13)
 - Einträge bearbeiten: Antippen öffnet einen Dialog (Titel, Uhrzeit, Tag, Kategorie, Priorität, Dauer) – damit lassen sich Aufgaben auch auf andere Tage verschieben; bei festen Terminen gilt die Änderung für jede Woche.
 - Spracheingabe versteht absolute Daten („am 11.08. …“, „am 3. August“) und speichert sie automatisch in der richtigen Woche – auch über Monats-/Jahresgrenzen.
