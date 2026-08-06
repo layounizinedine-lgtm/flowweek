@@ -252,6 +252,17 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .seg button{flex:1;padding:8px 0;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted)}
 .seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.15)}
 
+/* ---------- Kalender-Synchronisation ---------- */
+.sync-state{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;margin-bottom:6px}
+.sync-state::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.sync-state.on{color:var(--green)}
+.sync-state.on::before{background:var(--green)}
+.sync-btns{display:grid;gap:6px;margin-top:10px}
+.sync-btns .btn{justify-content:center;width:100%}
+.sync-btns a.btn{text-decoration:none;color:inherit}
+.sync-btns a.btn.primary{color:#fff}
+.sync-url{font-size:10.5px;line-height:1.5;word-break:break-all;color:var(--muted);background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:7px 8px;margin-top:8px}
+
 /* ---------- Mini-Kalender ---------- */
 .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .cal-head b{font-family:'Archivo',sans-serif;font-size:14px}
@@ -352,6 +363,10 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
     <div class="eyebrow">Kalender</div>
     <div class="cal" id="miniCal"></div>
     <p class="hint" style="margin-top:6px">Tippe ein Datum, um diese Woche zu planen.</p>
+  </div>
+  <div class="drawer-sec">
+    <div class="eyebrow">Kalender-Synchronisation</div>
+    <div id="calSync"></div>
   </div>
   <div class="drawer-sec">
     <div class="eyebrow">Sprache der Spracheingabe</div>
@@ -1530,7 +1545,7 @@ function renderHome(){
 /* ============================================================
    MENÜ (Drawer): Theme, Kalender, Sprache, Konto
    ============================================================ */
-function openDrawer(){ $("drawer").classList.add("open"); $("drawerMask").classList.add("open"); renderCal(); }
+function openDrawer(){ $("drawer").classList.add("open"); $("drawerMask").classList.add("open"); renderCal(); renderCalendarSync(); }
 function closeDrawer(){ $("drawer").classList.remove("open"); $("drawerMask").classList.remove("open"); }
 $("burgerBtn").addEventListener("click", openDrawer);
 $("drawerClose").addEventListener("click", closeDrawer);
@@ -1588,6 +1603,195 @@ function renderCal(){
     closeDrawer();
     switchView("week");
   }));
+}
+
+/* ============================================================
+   KALENDER-SYNCHRONISATION (Apple Kalender, Google Kalender, Outlook)
+
+   FlowWeek stellt den Wochenplan als abonnierbaren Kalender-Feed bereit
+   (api/calendar.js). Der Nutzer verbindet EINMAL, danach holt sich die
+   Kalender-App die Termine selbstständig – jede Änderung in FlowWeek landet
+   automatisch dort. Der geheime Feed-Token liegt beim Nutzer, der Server kennt
+   nur seinen Hash.
+   ============================================================ */
+const CAL_TOKEN_KEY = "calendarFeedToken";
+let calSyncBusy = false;
+
+/* Feed-Endpunkt aus der Backend-URL ableiten: .../api/chat -> .../api/calendar */
+function calendarEndpoint(){
+  if(!backendConfigured()) return null;
+  try{
+    const u = new URL(CONFIG.BACKEND_URL);
+    u.search = ""; u.hash = "";
+    u.pathname = u.pathname.replace(/[^/]*$/, "calendar");
+    return u.toString();
+  }catch(e){ return null; }
+}
+function calendarFeedUrl(token){
+  const base = calendarEndpoint();
+  return base ? base + "?token=" + encodeURIComponent(token) : null;
+}
+/* webcal:// öffnet auf iPhone/iPad/Mac direkt den Abo-Dialog der Kalender-App */
+function calendarWebcalUrl(token){
+  const url = calendarFeedUrl(token);
+  return url ? url.replace(/^https?:\/\//, "webcal://") : null;
+}
+function calendarGoogleUrl(token){
+  const wc = calendarWebcalUrl(token);
+  return wc ? "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(wc) : null;
+}
+function cryptoReady(){
+  return !!(window.crypto && window.crypto.subtle && window.crypto.getRandomValues);
+}
+function newFeedToken(){
+  const bytes = new Uint8Array(32);
+  window.crypto.getRandomValues(bytes);
+  let bin = "";
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+async function sha256Hex(text){
+  const buf = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function relTime(iso){
+  const t = Date.parse(iso || "");
+  if(!Number.isFinite(t)) return null;
+  const min = Math.round((Date.now() - t) / 60000);
+  if(min < 2) return "gerade eben";
+  if(min < 60) return "vor "+min+" Minuten";
+  const h = Math.round(min/60);
+  if(h < 24) return "vor "+h+(h === 1 ? " Stunde" : " Stunden");
+  const d = Math.round(h/24);
+  return "vor "+d+(d === 1 ? " Tag" : " Tagen");
+}
+
+async function renderCalendarSync(){
+  const box = $("calSync");
+  if(!box) return;
+  if(!calendarEndpoint()){
+    box.innerHTML = '<p class="hint">Die Kalender-Synchronisation ist in dieser Installation noch nicht eingerichtet (Backend fehlt).</p>';
+    return;
+  }
+  if(!sb){
+    box.innerHTML = '<p class="hint">Die Kalender-Synchronisation braucht den Cloud-Sync – in dieser Installation ist er nicht konfiguriert.</p>';
+    return;
+  }
+  if(!currentUser){
+    box.innerHTML = '<p class="hint">Damit dein Kalender die Termine automatisch bekommt, brauchst du ein FlowWeek-Konto: Nur dann kann die Kalender-App sie von überall abrufen.</p>'
+      + '<div class="sync-btns"><button class="btn primary" id="calSyncLogin">Anmelden / Konto erstellen</button></div>';
+    $("calSyncLogin").addEventListener("click", ()=>{ closeDrawer(); showAuthMask(); });
+    return;
+  }
+
+  const token = await store.get(CAL_TOKEN_KEY);
+  if(!token || typeof token !== "string"){
+    box.innerHTML = '<p class="hint">Einmal verbinden – fertig. Danach erscheinen deine FlowWeek-Termine automatisch in der Kalender-App von iPhone, iPad, Mac oder Android, und jede Änderung wird von selbst übernommen.</p>'
+      + '<div class="sync-btns"><button class="btn primary" id="calSyncConnect">Mit Kalender verbinden</button></div>';
+    $("calSyncConnect").addEventListener("click", connectCalendar);
+    return;
+  }
+
+  const feedUrl = calendarFeedUrl(token);
+  box.innerHTML =
+      '<div class="sync-state on" id="calSyncState">Verbunden</div>'
+    + '<p class="hint" id="calSyncInfo">Öffne den Link einmal auf jedem Gerät, auf dem du die Termine sehen willst.</p>'
+    + '<div class="sync-btns">'
+    +   '<a class="btn primary" href="'+esc(calendarWebcalUrl(token))+'">In Apple Kalender öffnen</a>'
+    +   '<a class="btn" href="'+esc(calendarGoogleUrl(token))+'" target="_blank" rel="noopener noreferrer">In Google Kalender öffnen</a>'
+    +   '<button class="btn ghost" id="calSyncCopy">Link kopieren</button>'
+    + '</div>'
+    + '<div class="sync-url">'+esc(feedUrl)+'</div>'
+    + '<p class="hint" style="margin-top:8px"><b>Android:</b> Den Google-Link einmal im Browser bestätigen – danach taucht der Kalender automatisch auch in der Kalender-App des Handys auf.</p>'
+    + '<p class="hint" style="margin-top:6px">Die Termine werden nur aus FlowWeek übernommen: Bearbeitet wird weiterhin hier, der Kalender spiegelt es.</p>'
+    + '<p class="hint" style="margin-top:6px">Behandle den Link wie ein Passwort – wer ihn hat, kann deine Termine sehen.</p>'
+    + '<div class="sync-btns"><button class="btn ghost danger" id="calSyncOff">Verbindung trennen</button></div>';
+
+  $("calSyncCopy").addEventListener("click", async ()=>{
+    try{
+      await navigator.clipboard.writeText(feedUrl);
+      toast("Link kopiert ✅");
+    }catch(e){
+      toast("Kopieren nicht möglich – Link bitte manuell markieren.");
+    }
+  });
+  $("calSyncOff").addEventListener("click", disconnectCalendar);
+
+  /* Zusatzinfo: Wann hat die Kalender-App zuletzt abgerufen? Zeigt dem Nutzer,
+     dass der Sync wirklich von allein läuft. */
+  try{
+    const { data, error } = await sb.from("flowweek_calendar_feeds")
+      .select("last_access_at").eq("user_id", currentUser.id).maybeSingle();
+    if(error) throw error;
+    const state = $("calSyncState"), info = $("calSyncInfo");
+    if(!state || !info) return; // Menü wurde inzwischen neu aufgebaut
+    if(!data){
+      state.classList.remove("on");
+      state.textContent = "Nicht mehr verbunden";
+      info.textContent = "Diese Verbindung wurde entfernt. Bitte neu verbinden.";
+      return;
+    }
+    const rel = relTime(data.last_access_at);
+    info.textContent = rel
+      ? "Zuletzt vom Kalender abgerufen: "+rel+". Das läuft von allein weiter."
+      : "Noch kein Abruf – die Kalender-App meldet sich nach dem Abonnieren von selbst. Beim ersten Mal kann das ein paar Minuten dauern.";
+  }catch(e){
+    console.warn("Kalender-Status nicht abrufbar:", e);
+  }
+}
+
+async function connectCalendar(){
+  if(calSyncBusy) return;
+  if(!currentUser || !sb){ toast("Bitte zuerst anmelden."); return; }
+  if(!cryptoReady()){
+    toast("Dieser Browser erlaubt das nur über eine https-Adresse.");
+    return;
+  }
+  const btn = $("calSyncConnect");
+  calSyncBusy = true;
+  if(btn){ btn.disabled = true; btn.textContent = "Verbinde …"; }
+  try{
+    const token = newFeedToken();
+    let tz = "Europe/Berlin";
+    try{ tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; }catch(e){}
+    const { error } = await sb.from("flowweek_calendar_feeds").upsert({
+      user_id: currentUser.id,
+      token_hash: await sha256Hex(token),
+      timezone: tz,
+      created_at: new Date().toISOString(),
+      last_access_at: null
+    }, { onConflict: "user_id" });
+    if(error) throw error;
+    await store.set(CAL_TOKEN_KEY, token);
+    toast("Kalender verbunden ✅");
+  }catch(e){
+    console.error("Kalender-Verbindung fehlgeschlagen:", e);
+    toast("Verbinden hat nicht geklappt. Bitte später erneut versuchen.");
+  }finally{
+    calSyncBusy = false;
+    renderCalendarSync();
+  }
+}
+
+async function disconnectCalendar(){
+  if(calSyncBusy) return;
+  if(!currentUser || !sb) return;
+  const btn = $("calSyncOff");
+  calSyncBusy = true;
+  if(btn){ btn.disabled = true; btn.textContent = "Trenne …"; }
+  try{
+    const { error } = await sb.from("flowweek_calendar_feeds").delete().eq("user_id", currentUser.id);
+    if(error) throw error;
+    /* Leerer String statt null: die Cloud-Spalte ist "not null" */
+    await store.set(CAL_TOKEN_KEY, "");
+    toast("Verbindung getrennt. Der alte Link funktioniert nicht mehr.");
+  }catch(e){
+    console.error("Trennen fehlgeschlagen:", e);
+    toast("Trennen hat nicht geklappt. Bitte später erneut versuchen.");
+  }finally{
+    calSyncBusy = false;
+    renderCalendarSync();
+  }
 }
 
 /* ============================================================
@@ -1805,6 +2009,7 @@ async function loadAllUserData(){
   await loadWeek();
   renderHome();
   renderAccountBar();
+  renderCalendarSync();
   updateAiStatus();
 }
 function updateAiStatus(label){
