@@ -1,13 +1,17 @@
 // Tests für die puren FlowParse-Hilfsfunktionen in flowweek.html.
 // Ausführen mit: node --test test/
-// Der Block zwischen den FlowParse-Markern ist DOM-frei und wird hier
-// direkt aus der HTML-Datei extrahiert und in einem Sandbox-Kontext geladen.
+// Der Block zwischen den FlowParse-Markern ist DOM-frei und wird hier direkt
+// aus der HTML-Datei extrahiert und ausgewertet.
+//
+// Wichtig: Das passiert im selben Realm wie die Tests (new Function statt
+// node:vm). Eine vm-Sandbox hat eigene Intrinsics – dort erzeugte Arrays und
+// Objekte haben einen anderen Prototyp, und assert.deepEqual (strict) meldet
+// dann "same structure but not reference-equal", obwohl der Inhalt stimmt.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import vm from "node:vm";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const html = readFileSync(join(root, "flowweek.html"), "utf-8");
@@ -17,14 +21,16 @@ const start = html.indexOf(START);
 const end = html.indexOf(END);
 assert.ok(start !== -1 && end !== -1, "FlowParse-Marker nicht gefunden");
 
-const ctx = {};
-vm.createContext(ctx);
-vm.runInContext(html.slice(start, end), ctx);
+const EXPORTS = [
+  "cleanText", "parseJsonLoose", "applySelfCorrections", "hasCorrectionMarker",
+  "getMonday", "localDateKey", "minutesOf", "splitTimeChunks",
+  "parseWeekSpeechLocal", "extractTime", "inferCategory", "inferPriority", "inferDuration"
+];
 const {
   cleanText, parseJsonLoose, applySelfCorrections, hasCorrectionMarker,
   getMonday, localDateKey, minutesOf, splitTimeChunks,
   parseWeekSpeechLocal, extractTime, inferCategory, inferPriority, inferDuration,
-} = new Proxy(ctx, { get: (t, k) => vm.runInContext(String(k), t) });
+} = new Function(html.slice(start, end) + "\nreturn {" + EXPORTS.join(",") + "};")();
 
 // ---- Datum / Woche ----
 test("getMonday liefert Montag 00:00 lokale Zeit", () => {
@@ -107,6 +113,18 @@ test("inferCategory", () => {
   assert.equal(inferCategory("Meeting mit Kunde"), "Arbeit");
   assert.equal(inferCategory("Spaziergang zur Erholung"), "Erholung");
   assert.equal(inferCategory("Mutter anrufen"), "Privat");
+});
+
+test("Arzttermine & Co. sind privat, nicht Arbeit", () => {
+  assert.equal(inferCategory("Zahnarzt Termin"), "Privat");
+  assert.equal(inferCategory("Zahnarzttermin"), "Privat");
+  assert.equal(inferCategory("Termin bei der Frauenärztin"), "Privat");
+  assert.equal(inferCategory("Friseur"), "Privat");
+  assert.equal(inferCategory("Physiotherapie"), "Privat");
+  // Echte Arbeits-Signale bleiben Arbeit
+  assert.equal(inferCategory("Termin mit dem Chef"), "Arbeit");
+  assert.equal(inferCategory("Projekt abschließen"), "Arbeit");
+  assert.equal(inferCategory("Call mit dem Kunden"), "Arbeit");
 });
 
 test("inferPriority und inferDuration", () => {

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://flowweek-one.vercel.app https://pcdlqtcbpyvjdziqbrfk.supabase.co wss://pcdlqtcbpyvjdziqbrfk.supabase.co;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://flowweek-one.vercel.app https://pcdlqtcbpyvjdziqbrfk.supabase.co wss://pcdlqtcbpyvjdziqbrfk.supabase.co;">
 <title>FlowWeek – Sprechen. Planen. Besser werden.</title>
 <meta name="description" content="FlowWeek macht Wochenplanung stressfrei: Woche einsprechen, wichtige Termine auf einen Blick, feste wöchentliche Termine und eine klare Analyse.">
 <meta name="theme-color" content="#0F1218">
@@ -177,6 +177,9 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 
 .toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--line);padding:10px 18px;border-radius:12px;font-size:13.5px;opacity:0;transition:all .25s;pointer-events:none;z-index:99;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%)}
+.toast.has-action{pointer-events:auto;display:flex;align-items:center;gap:12px;text-align:left}
+.toast-action{font-weight:700;font-size:13.5px;color:var(--accent);white-space:nowrap;padding:2px 4px;border-radius:6px}
+.toast-action:hover{text-decoration:underline}
 .warn{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.35);border-radius:10px;padding:10px 12px;font-size:13px;color:#fca5a5;margin-bottom:12px}
 @media(min-width:720px){ .days-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px} .daycol{margin-bottom:0} }
 @media(max-width:520px){
@@ -666,7 +669,12 @@ function extractTime(text){
 function inferCategory(text){
   if(/\b(fokus|deep work|konzentr\w*|wichtigste|top\s*3|projektarbeit)\b/i.test(text)) return "Fokus";
   if(/\b(lern\w*|schule|uni|mathe|deutsch|englisch|vokabel\w*|prüfung\w*|klausur\w*|hausaufgabe\w*|lesen|studier\w*|üben?)\b/i.test(text)) return "Lernen";
-  if(/\b(job|arbeit\w*|meeting\w*|kunde\w*|projekt\w*|büro|call\w*|termin\w*)\b/i.test(text)) return "Arbeit";
+  /* Gesundheit/Erledigungen vor „Arbeit“ prüfen: „Termin“ allein ist im
+     Deutschen kein Arbeits-Signal (Arzt-, Friseur-, Amtstermin). Bewusst ohne
+     \b, weil das vor Umlauten nicht greift und die Wörter auch in
+     Zusammensetzungen stecken („Zahnarzttermin“, „Frauenärztin“). */
+  if(/(arzt|ärzt|doktor|klinik|zahn|therapie|impf|friseur|apotheke|behörde)/i.test(text)) return "Privat";
+  if(/\b(job|arbeit\w*|meeting\w*|kunde\w*|projekt\w*|büro|call\w*|chef\w*|kollege\w*|kollegin\w*)\b/i.test(text)) return "Arbeit";
   if(/\b(sport|fitness|training\w*|trainier\w*|laufen|joggen|gym|fu(ß|ss)ball|schwimm\w*|workout)\b/i.test(text)) return "Sport";
   if(/\b(pause\w*|erhol\w*|schlaf\w*|ruhe|spaziergang|regeneration|abschalten|frei)\b/i.test(text)) return "Erholung";
   return "Privat";
@@ -738,9 +746,33 @@ const store = {
 
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
-function toast(msg){
-  const t = $("toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("show"), 2600);
+/* Kurze Rückmeldung. Mit `action` erscheint zusätzlich ein Knopf (z. B.
+   „Rückgängig“) und die Meldung bleibt länger stehen. Titel werden per
+   textContent gesetzt – niemals als HTML. */
+function toast(msg, action){
+  const t = $("toast");
+  clearTimeout(toast._t);
+  t.classList.remove("has-action");
+  if(action && typeof action.onClick === "function"){
+    t.textContent = "";
+    const label = document.createElement("span");
+    label.textContent = msg;
+    const btn = document.createElement("button");
+    btn.className = "toast-action";
+    btn.textContent = action.label || "Rückgängig";
+    btn.addEventListener("click", ()=>{
+      clearTimeout(toast._t);
+      t.classList.remove("show", "has-action");
+      action.onClick();
+    });
+    t.append(label, btn);
+    t.classList.add("show", "has-action");
+    toast._t = setTimeout(()=>t.classList.remove("show", "has-action"), 8000);
+    return;
+  }
+  t.textContent = msg;
+  t.classList.add("show");
+  toast._t = setTimeout(()=>t.classList.remove("show"), 2600);
 }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -863,12 +895,34 @@ async function loadWeek(){
   weekCache.set(key, week);
 }
 async function saveWeek(){
-  /* Erledigt-Marker verwaister (gelöschter) fester Termine mit aufräumen */
-  week.rdone = (week.rdone || []).filter(k=> routines.some(r=> k.indexOf(r.id+"@") === 0));
+  /* Erledigt-Marker aufräumen: gelöschte feste Termine, aber auch solche, die
+     inzwischen auf einen anderen Wochentag verschoben wurden (sonst gilt ein
+     Termin nach dem Zurückschieben fälschlich wieder als erledigt). */
+  week.rdone = (week.rdone || []).filter(k=> routines.some(r=> k === r.id+"@"+r.day));
   weekCache.set(weekKey(currentMonday), week);
   await store.set(weekKey(currentMonday), week);
 }
 async function saveRoutines(){ await store.set("routines", routines); }
+
+/* Stellt eine gelöschte Aufgabe wieder her – auch dann, wenn inzwischen eine
+   andere Woche angezeigt wird. */
+async function restoreTask(key, day, task, index){
+  if(!task || !DAYS.includes(day)) return;
+  if(key === weekKey(currentMonday)){
+    if(!Array.isArray(week[day])) week[day] = [];
+    week[day].splice(Math.min(index, week[day].length), 0, task);
+    await saveWeek(); renderWeek(); renderHome();
+    toast("Wiederhergestellt ✅");
+    return;
+  }
+  const target = normalizeWeekObj(weekCache.get(key) || await store.get(key));
+  target[day].splice(Math.min(index, target[day].length), 0, task);
+  weekCache.set(key, target);
+  await store.set(key, target);
+  renderHome();
+  const [y, m, d] = key.split("-");
+  toast("Wiederhergestellt in der Woche ab "+d+"."+m+"."+y+" ✅");
+}
 
 const DAYSHORT = {mon:"Mo",tue:"Di",wed:"Mi",thu:"Do",fri:"Fr",sat:"Sa",sun:"So"};
 const CATCOLOR = {Fokus:"var(--cyan)",Lernen:"var(--blue)",Arbeit:"var(--amber)",Sport:"var(--green)",Privat:"#C084FC",Erholung:"var(--violet)"};
@@ -1003,7 +1057,7 @@ function renderWeek(){
       '<div class="addrow" id="addrow-'+d+'">'+
         '<input type="time" data-add-time="'+d+'">'+
         '<input placeholder="Aufgabe …" data-add-title="'+d+'">'+
-        '<select data-add-cat="'+d+'">'+CATS.map(c=>'<option>'+c+'</option>').join("")+'</select>'+
+        '<select data-add-cat="'+d+'"><option value="">Kategorie: automatisch</option>'+CATS.map(c=>'<option value="'+c+'">'+c+'</option>').join("")+'</select>'+
         '<select data-add-prio="'+d+'"><option value="normal">Normal</option><option value="high">Wichtig</option><option value="medium">Sollte</option><option value="low">Optional</option></select>'+
         '<select data-add-duration="'+d+'"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option><option value="90">90 min</option><option value="120">2 h</option></select>'+
         '<button class="btn primary" data-add-btn="'+d+'">+</button>'+
@@ -1028,15 +1082,32 @@ function renderWeek(){
     await saveWeek(); renderWeek();
   }));
   document.querySelectorAll("#daysGrid .task .t-del").forEach(b=> b.addEventListener("click", async ()=>{
-    const el = b.closest(".task"); const id = el.dataset.id;
+    const el = b.closest(".task"); const day = el.dataset.day; const id = el.dataset.id;
     if(id.startsWith("r-")){
-      routines = routines.filter(r=>("r-"+r.id)!==id);
-      await saveRoutines(); await saveWeek(); renderWeek();
-      toast("Fester Termin entfernt – er galt für jede Woche.");
+      const idx = routines.findIndex(r=>("r-"+r.id)===id);
+      if(idx < 0) return;
+      const removed = routines[idx];
+      /* Erledigt-Marker dieser Woche mitnehmen, damit „Rückgängig“ wirklich
+         den vorherigen Stand herstellt (saveWeek räumt sie sonst weg). */
+      const removedDone = (week.rdone||[]).filter(k=> k.indexOf(removed.id+"@") === 0);
+      routines.splice(idx, 1);
+      await saveRoutines(); await saveWeek(); renderWeek(); renderHome();
+      toast("Fester Termin gelöscht – er galt für jede Woche.", { onClick: async ()=>{
+        routines.splice(Math.min(idx, routines.length), 0, removed);
+        removedDone.forEach(k=>{ if(!week.rdone.includes(k)) week.rdone.push(k); });
+        await saveRoutines(); await saveWeek(); renderWeek(); renderHome();
+        toast("Wiederhergestellt ✅");
+      }});
       return;
     }
-    week[el.dataset.day] = week[el.dataset.day].filter(x=>x.id!==id);
-    await saveWeek(); renderWeek();
+    const list = week[day] || [];
+    const idx = list.findIndex(x=>x.id===id);
+    if(idx < 0) return;
+    const removed = list[idx];
+    const fromWeek = weekKey(currentMonday); // Undo muss auch nach Wochenwechsel treffen
+    list.splice(idx, 1);
+    await saveWeek(); renderWeek(); renderHome();
+    toast("Gelöscht.", { onClick: ()=> restoreTask(fromWeek, day, removed, idx) });
   }));
   document.querySelectorAll("#daysGrid .task .t-main").forEach(el=> el.addEventListener("click", ()=>{
     const row = el.closest(".task");
@@ -1063,7 +1134,9 @@ async function addTaskFromRow(day){
   const title = titleInput.value.trim();
   if(!title) return toast("Aufgabe eingeben.");
   const time = timeInput.value;
-  const cat = catInput.value;
+  /* Ohne bewusste Wahl die Kategorie aus dem Titel ableiten – sonst landet
+     jede getippte Aufgabe in „Fokus“ und verzerrt die Wochenanalyse. */
+  const cat = catInput.value || inferCategory(title);
   if(recInput && recInput.checked){
     routines.push({id:newTaskId(), day, time, title:cleanText(title, LIMITS.TASK_TITLE), cat, priority: prioInput.value, duration: Number(durInput.value)||30});
     await saveRoutines(); renderWeek();
@@ -1547,6 +1620,21 @@ function renderHome(){
    ============================================================ */
 function openDrawer(){ $("drawer").classList.add("open"); $("drawerMask").classList.add("open"); renderCal(); renderCalendarSync(); }
 function closeDrawer(){ $("drawer").classList.remove("open"); $("drawerMask").classList.remove("open"); }
+
+/* Escape schließt, was gerade offen ist – von innen nach außen. Die Login-Maske
+   bleibt bewusst offen: Sie ist keine Überlagerung, sondern der Einstieg. */
+document.addEventListener("keydown", (e)=>{
+  if(e.key !== "Escape") return;
+  if($("editMask").style.display === "flex"){
+    editCtx = null; $("editMask").style.display = "none"; return;
+  }
+  if($("parseMask").style.display === "flex"){
+    closeParseMask();
+    toast("Verworfen – es wurde nichts gespeichert.");
+    return;
+  }
+  if($("drawer").classList.contains("open")) closeDrawer();
+});
 $("burgerBtn").addEventListener("click", openDrawer);
 $("drawerClose").addEventListener("click", closeDrawer);
 $("drawerMask").addEventListener("click", closeDrawer);

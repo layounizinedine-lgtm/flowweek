@@ -7,6 +7,7 @@ FlowWeek macht Wochenplanung stressfrei: Beim Öffnen zeigt ein Dashboard, was h
 - **Start-Dashboard**: Beim Öffnen siehst du sofort, was heute ansteht, welche Termine diese Woche wichtig sind und was du beachten solltest (offene Aufgaben, Zeitkonflikte, zu volle Tage).
 - **Woche einsprechen**: Eine Aufnahme kann mehrere Tage, Uhrzeiten und Aufgaben enthalten. Vor dem Speichern zeigt FlowWeek eine Vorschau, in der jeder Eintrag einzeln bearbeitet, abgewählt oder bestätigt wird. Relative Angaben (heute, morgen, übermorgen, Wochenende) und Korrekturen im Satz werden berücksichtigt; ohne KI-Verbindung greift ein lokaler Fallback-Parser.
 - **Feste Termine**: Beim Anlegen „jede Woche wiederholen“ anhaken – der Termin erscheint automatisch in jeder Woche (↻) und der Erledigt-Status gilt pro Woche.
+- **Sicher beim Bearbeiten**: Gelöschte Aufgaben und feste Termine lassen sich direkt aus der Meldung heraus wiederherstellen.
 - **Wochenplaner**: Übersichtsleiste, Tageskarten, Kategorien, Prioritäten, sofortiger Wochenwechsel (lokaler Cache, Cloud-Abgleich im Hintergrund), „Heute“-Knopf.
 - **Kalender-Synchronisation**: Einmal im Menü verbinden – danach erscheinen alle Termine automatisch in Apple Kalender, Google Kalender (Android) oder Outlook und bleiben dort aktuell, ohne dass noch etwas exportiert oder importiert werden muss.
 - **Menü**: Hell/Dunkel/System-Theme, Sprache der Spracheingabe, Mini-Kalender zum Planen Monate im Voraus, Kalender-Synchronisation, Konto.
@@ -73,6 +74,15 @@ Getestet werden Datumsberechnung (inkl. Jahreswechsel und Sommerzeit), relative 
 - Der Kalender-Feed ist nur über einen geheimen, jederzeit widerrufbaren Link erreichbar und wird erst angelegt, wenn die Synchronisation aktiv verbunden wird.
 
 ## Changelog
+
+### 2.4.0 (2026-08-07)
+- **Löschen lässt sich rückgängig machen**: Ein versehentlicher Tipp auf ✕ kostet keine Daten mehr – die Meldung bietet „Rückgängig“ an. Das gilt auch für feste Termine (inklusive der Erledigt-Häkchen) und funktioniert selbst dann noch, wenn inzwischen eine andere Woche angezeigt wird.
+- **Kategorie wird beim Tippen erkannt**: Getippte Aufgaben landeten bisher alle in „Fokus“, weil das die erste Auswahl war – das verzerrte die Wochenanalyse. Jetzt steht die Kategorie standardmäßig auf „automatisch“ und wird aus dem Titel abgeleitet; eine bewusste Auswahl gilt weiterhin.
+- **Arzttermine sind nicht mehr „Arbeit“**: „Termin“ allein galt als Arbeits-Signal, wodurch Zahnarzt-, Friseur- oder Amtstermine falsch einsortiert wurden. Dafür erkennt FlowWeek jetzt „Chef“ und „Kollege/Kollegin“ als Arbeit.
+- **Escape schließt Dialoge**: Bearbeiten-Fenster, Sprach-Vorschau und Menü lassen sich mit der Escape-Taste schließen.
+- **Bugfix Favicon**: Das Symbol wurde von der eigenen Content-Security-Policy blockiert (`img-src` fehlte) und war deshalb in keinem Browser sichtbar.
+- **Bugfix Erledigt-Marker**: Wurde ein fester Termin auf einen anderen Wochentag verschoben, blieb der alte Erledigt-Marker liegen und der Termin galt nach dem Zurückschieben fälschlich als erledigt.
+- **Bugfix Tests**: Die Testdatei lud den Parser in einer `node:vm`-Sandbox. Deren Arrays haben einen anderen Prototyp, weshalb `assert.deepEqual` bei inhaltlich korrekten Ergebnissen fehlschlug – sechs Tests waren rot, obwohl der Parser richtig arbeitete. Der Block wird jetzt im selben Realm ausgewertet.
 
 ### 2.3.0 (2026-08-06)
 - **Kalender-Synchronisation**: FlowWeek lässt sich einmal mit Apple Kalender, Google Kalender (Android) oder Outlook verbinden – danach erscheinen alle Termine dort automatisch und bleiben aktuell, ohne manuellen Export.
