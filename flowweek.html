@@ -4,14 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://flowweek-one.vercel.app https://pcdlqtcbpyvjdziqbrfk.supabase.co wss://pcdlqtcbpyvjdziqbrfk.supabase.co;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://flowweek-one.vercel.app https://pcdlqtcbpyvjdziqbrfk.supabase.co wss://pcdlqtcbpyvjdziqbrfk.supabase.co;">
 <title>FlowWeek – Sprechen. Planen. Besser werden.</title>
 <meta name="description" content="FlowWeek macht Wochenplanung stressfrei: Woche einsprechen, wichtige Termine auf einen Blick, feste wöchentliche Termine und eine klare Analyse.">
 <meta name="theme-color" content="#0F1218">
 <meta property="og:title" content="FlowWeek – Sprechen. Planen. Besser werden.">
 <meta property="og:description" content="Stressfreie Wochenplanung: einsprechen, prüfen, abhaken.">
 <meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23FFB454'/%3E%3Cstop offset='.35' stop-color='%23FF9A3D'/%3E%3Cstop offset='1' stop-color='%235EA2FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M7 13.5v5M13 8.5v15M19 11.5v9M25 14v4' stroke='%23fff' stroke-width='3.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20512%20512'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%238CA2FF'/%3E%3Cstop%20offset='.45'%20stop-color='%235B78E8'/%3E%3Cstop%20offset='1'%20stop-color='%233A52B8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='512'%20height='512'%20rx='112'%20fill='url%28%23g%29'/%3E%3Cg%20fill='%23fff'%3E%3Crect%20x='103'%20y='204'%20width='48'%20height='104'%20rx='24'/%3E%3Crect%20x='189'%20y='116'%20width='48'%20height='280'%20rx='24'/%3E%3Crect%20x='275'%20y='168'%20width='48'%20height='176'%20rx='24'/%3E%3Crect%20x='361'%20y='220'%20width='48'%20height='72'%20rx='24'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" sizes="any" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FlowWeek">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script>
 /* Theme sofort anwenden (vor dem ersten Rendern), damit es beim Laden nicht blitzt */
 try{
@@ -177,6 +184,9 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 
 .toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--line);padding:10px 18px;border-radius:12px;font-size:13.5px;opacity:0;transition:all .25s;pointer-events:none;z-index:99;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%)}
+.toast.has-action{pointer-events:auto;display:flex;align-items:center;gap:12px;text-align:left}
+.toast-action{font-weight:700;font-size:13.5px;color:var(--accent);white-space:nowrap;padding:2px 4px;border-radius:6px}
+.toast-action:hover{text-decoration:underline}
 .warn{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.35);border-radius:10px;padding:10px 12px;font-size:13px;color:#fca5a5;margin-bottom:12px}
 @media(min-width:720px){ .days-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px} .daycol{margin-bottom:0} }
 @media(max-width:520px){
@@ -251,6 +261,17 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
 .seg{display:flex;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:3px}
 .seg button{flex:1;padding:8px 0;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted)}
 .seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+
+/* ---------- Kalender-Synchronisation ---------- */
+.sync-state{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;margin-bottom:6px}
+.sync-state::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.sync-state.on{color:var(--green)}
+.sync-state.on::before{background:var(--green)}
+.sync-btns{display:grid;gap:6px;margin-top:10px}
+.sync-btns .btn{justify-content:center;width:100%}
+.sync-btns a.btn{text-decoration:none;color:inherit}
+.sync-btns a.btn.primary{color:#fff}
+.sync-url{font-size:10.5px;line-height:1.5;word-break:break-all;color:var(--muted);background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:7px 8px;margin-top:8px}
 
 /* ---------- Mini-Kalender ---------- */
 .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -352,6 +373,10 @@ h2.section{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;margi
     <div class="eyebrow">Kalender</div>
     <div class="cal" id="miniCal"></div>
     <p class="hint" style="margin-top:6px">Tippe ein Datum, um diese Woche zu planen.</p>
+  </div>
+  <div class="drawer-sec">
+    <div class="eyebrow">Kalender-Synchronisation</div>
+    <div id="calSync"></div>
   </div>
   <div class="drawer-sec">
     <div class="eyebrow">Sprache der Spracheingabe</div>
@@ -651,7 +676,12 @@ function extractTime(text){
 function inferCategory(text){
   if(/\b(fokus|deep work|konzentr\w*|wichtigste|top\s*3|projektarbeit)\b/i.test(text)) return "Fokus";
   if(/\b(lern\w*|schule|uni|mathe|deutsch|englisch|vokabel\w*|prüfung\w*|klausur\w*|hausaufgabe\w*|lesen|studier\w*|üben?)\b/i.test(text)) return "Lernen";
-  if(/\b(job|arbeit\w*|meeting\w*|kunde\w*|projekt\w*|büro|call\w*|termin\w*)\b/i.test(text)) return "Arbeit";
+  /* Gesundheit/Erledigungen vor „Arbeit“ prüfen: „Termin“ allein ist im
+     Deutschen kein Arbeits-Signal (Arzt-, Friseur-, Amtstermin). Bewusst ohne
+     \b, weil das vor Umlauten nicht greift und die Wörter auch in
+     Zusammensetzungen stecken („Zahnarzttermin“, „Frauenärztin“). */
+  if(/(arzt|ärzt|doktor|klinik|zahn|therapie|impf|friseur|apotheke|behörde)/i.test(text)) return "Privat";
+  if(/\b(job|arbeit\w*|meeting\w*|kunde\w*|projekt\w*|büro|call\w*|chef\w*|kollege\w*|kollegin\w*)\b/i.test(text)) return "Arbeit";
   if(/\b(sport|fitness|training\w*|trainier\w*|laufen|joggen|gym|fu(ß|ss)ball|schwimm\w*|workout)\b/i.test(text)) return "Sport";
   if(/\b(pause\w*|erhol\w*|schlaf\w*|ruhe|spaziergang|regeneration|abschalten|frei)\b/i.test(text)) return "Erholung";
   return "Privat";
@@ -723,9 +753,33 @@ const store = {
 
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
-function toast(msg){
-  const t = $("toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("show"), 2600);
+/* Kurze Rückmeldung. Mit `action` erscheint zusätzlich ein Knopf (z. B.
+   „Rückgängig“) und die Meldung bleibt länger stehen. Titel werden per
+   textContent gesetzt – niemals als HTML. */
+function toast(msg, action){
+  const t = $("toast");
+  clearTimeout(toast._t);
+  t.classList.remove("has-action");
+  if(action && typeof action.onClick === "function"){
+    t.textContent = "";
+    const label = document.createElement("span");
+    label.textContent = msg;
+    const btn = document.createElement("button");
+    btn.className = "toast-action";
+    btn.textContent = action.label || "Rückgängig";
+    btn.addEventListener("click", ()=>{
+      clearTimeout(toast._t);
+      t.classList.remove("show", "has-action");
+      action.onClick();
+    });
+    t.append(label, btn);
+    t.classList.add("show", "has-action");
+    toast._t = setTimeout(()=>t.classList.remove("show", "has-action"), 8000);
+    return;
+  }
+  t.textContent = msg;
+  t.classList.add("show");
+  toast._t = setTimeout(()=>t.classList.remove("show"), 2600);
 }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -848,12 +902,34 @@ async function loadWeek(){
   weekCache.set(key, week);
 }
 async function saveWeek(){
-  /* Erledigt-Marker verwaister (gelöschter) fester Termine mit aufräumen */
-  week.rdone = (week.rdone || []).filter(k=> routines.some(r=> k.indexOf(r.id+"@") === 0));
+  /* Erledigt-Marker aufräumen: gelöschte feste Termine, aber auch solche, die
+     inzwischen auf einen anderen Wochentag verschoben wurden (sonst gilt ein
+     Termin nach dem Zurückschieben fälschlich wieder als erledigt). */
+  week.rdone = (week.rdone || []).filter(k=> routines.some(r=> k === r.id+"@"+r.day));
   weekCache.set(weekKey(currentMonday), week);
   await store.set(weekKey(currentMonday), week);
 }
 async function saveRoutines(){ await store.set("routines", routines); }
+
+/* Stellt eine gelöschte Aufgabe wieder her – auch dann, wenn inzwischen eine
+   andere Woche angezeigt wird. */
+async function restoreTask(key, day, task, index){
+  if(!task || !DAYS.includes(day)) return;
+  if(key === weekKey(currentMonday)){
+    if(!Array.isArray(week[day])) week[day] = [];
+    week[day].splice(Math.min(index, week[day].length), 0, task);
+    await saveWeek(); renderWeek(); renderHome();
+    toast("Wiederhergestellt ✅");
+    return;
+  }
+  const target = normalizeWeekObj(weekCache.get(key) || await store.get(key));
+  target[day].splice(Math.min(index, target[day].length), 0, task);
+  weekCache.set(key, target);
+  await store.set(key, target);
+  renderHome();
+  const [y, m, d] = key.split("-");
+  toast("Wiederhergestellt in der Woche ab "+d+"."+m+"."+y+" ✅");
+}
 
 const DAYSHORT = {mon:"Mo",tue:"Di",wed:"Mi",thu:"Do",fri:"Fr",sat:"Sa",sun:"So"};
 const CATCOLOR = {Fokus:"var(--cyan)",Lernen:"var(--blue)",Arbeit:"var(--amber)",Sport:"var(--green)",Privat:"#C084FC",Erholung:"var(--violet)"};
@@ -988,7 +1064,7 @@ function renderWeek(){
       '<div class="addrow" id="addrow-'+d+'">'+
         '<input type="time" data-add-time="'+d+'">'+
         '<input placeholder="Aufgabe …" data-add-title="'+d+'">'+
-        '<select data-add-cat="'+d+'">'+CATS.map(c=>'<option>'+c+'</option>').join("")+'</select>'+
+        '<select data-add-cat="'+d+'"><option value="">Kategorie: automatisch</option>'+CATS.map(c=>'<option value="'+c+'">'+c+'</option>').join("")+'</select>'+
         '<select data-add-prio="'+d+'"><option value="normal">Normal</option><option value="high">Wichtig</option><option value="medium">Sollte</option><option value="low">Optional</option></select>'+
         '<select data-add-duration="'+d+'"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option><option value="90">90 min</option><option value="120">2 h</option></select>'+
         '<button class="btn primary" data-add-btn="'+d+'">+</button>'+
@@ -1013,15 +1089,32 @@ function renderWeek(){
     await saveWeek(); renderWeek();
   }));
   document.querySelectorAll("#daysGrid .task .t-del").forEach(b=> b.addEventListener("click", async ()=>{
-    const el = b.closest(".task"); const id = el.dataset.id;
+    const el = b.closest(".task"); const day = el.dataset.day; const id = el.dataset.id;
     if(id.startsWith("r-")){
-      routines = routines.filter(r=>("r-"+r.id)!==id);
-      await saveRoutines(); await saveWeek(); renderWeek();
-      toast("Fester Termin entfernt – er galt für jede Woche.");
+      const idx = routines.findIndex(r=>("r-"+r.id)===id);
+      if(idx < 0) return;
+      const removed = routines[idx];
+      /* Erledigt-Marker dieser Woche mitnehmen, damit „Rückgängig“ wirklich
+         den vorherigen Stand herstellt (saveWeek räumt sie sonst weg). */
+      const removedDone = (week.rdone||[]).filter(k=> k.indexOf(removed.id+"@") === 0);
+      routines.splice(idx, 1);
+      await saveRoutines(); await saveWeek(); renderWeek(); renderHome();
+      toast("Fester Termin gelöscht – er galt für jede Woche.", { onClick: async ()=>{
+        routines.splice(Math.min(idx, routines.length), 0, removed);
+        removedDone.forEach(k=>{ if(!week.rdone.includes(k)) week.rdone.push(k); });
+        await saveRoutines(); await saveWeek(); renderWeek(); renderHome();
+        toast("Wiederhergestellt ✅");
+      }});
       return;
     }
-    week[el.dataset.day] = week[el.dataset.day].filter(x=>x.id!==id);
-    await saveWeek(); renderWeek();
+    const list = week[day] || [];
+    const idx = list.findIndex(x=>x.id===id);
+    if(idx < 0) return;
+    const removed = list[idx];
+    const fromWeek = weekKey(currentMonday); // Undo muss auch nach Wochenwechsel treffen
+    list.splice(idx, 1);
+    await saveWeek(); renderWeek(); renderHome();
+    toast("Gelöscht.", { onClick: ()=> restoreTask(fromWeek, day, removed, idx) });
   }));
   document.querySelectorAll("#daysGrid .task .t-main").forEach(el=> el.addEventListener("click", ()=>{
     const row = el.closest(".task");
@@ -1048,7 +1141,9 @@ async function addTaskFromRow(day){
   const title = titleInput.value.trim();
   if(!title) return toast("Aufgabe eingeben.");
   const time = timeInput.value;
-  const cat = catInput.value;
+  /* Ohne bewusste Wahl die Kategorie aus dem Titel ableiten – sonst landet
+     jede getippte Aufgabe in „Fokus“ und verzerrt die Wochenanalyse. */
+  const cat = catInput.value || inferCategory(title);
   if(recInput && recInput.checked){
     routines.push({id:newTaskId(), day, time, title:cleanText(title, LIMITS.TASK_TITLE), cat, priority: prioInput.value, duration: Number(durInput.value)||30});
     await saveRoutines(); renderWeek();
@@ -1530,8 +1625,23 @@ function renderHome(){
 /* ============================================================
    MENÜ (Drawer): Theme, Kalender, Sprache, Konto
    ============================================================ */
-function openDrawer(){ $("drawer").classList.add("open"); $("drawerMask").classList.add("open"); renderCal(); }
+function openDrawer(){ $("drawer").classList.add("open"); $("drawerMask").classList.add("open"); renderCal(); renderCalendarSync(); }
 function closeDrawer(){ $("drawer").classList.remove("open"); $("drawerMask").classList.remove("open"); }
+
+/* Escape schließt, was gerade offen ist – von innen nach außen. Die Login-Maske
+   bleibt bewusst offen: Sie ist keine Überlagerung, sondern der Einstieg. */
+document.addEventListener("keydown", (e)=>{
+  if(e.key !== "Escape") return;
+  if($("editMask").style.display === "flex"){
+    editCtx = null; $("editMask").style.display = "none"; return;
+  }
+  if($("parseMask").style.display === "flex"){
+    closeParseMask();
+    toast("Verworfen – es wurde nichts gespeichert.");
+    return;
+  }
+  if($("drawer").classList.contains("open")) closeDrawer();
+});
 $("burgerBtn").addEventListener("click", openDrawer);
 $("drawerClose").addEventListener("click", closeDrawer);
 $("drawerMask").addEventListener("click", closeDrawer);
@@ -1588,6 +1698,195 @@ function renderCal(){
     closeDrawer();
     switchView("week");
   }));
+}
+
+/* ============================================================
+   KALENDER-SYNCHRONISATION (Apple Kalender, Google Kalender, Outlook)
+
+   FlowWeek stellt den Wochenplan als abonnierbaren Kalender-Feed bereit
+   (api/calendar.js). Der Nutzer verbindet EINMAL, danach holt sich die
+   Kalender-App die Termine selbstständig – jede Änderung in FlowWeek landet
+   automatisch dort. Der geheime Feed-Token liegt beim Nutzer, der Server kennt
+   nur seinen Hash.
+   ============================================================ */
+const CAL_TOKEN_KEY = "calendarFeedToken";
+let calSyncBusy = false;
+
+/* Feed-Endpunkt aus der Backend-URL ableiten: .../api/chat -> .../api/calendar */
+function calendarEndpoint(){
+  if(!backendConfigured()) return null;
+  try{
+    const u = new URL(CONFIG.BACKEND_URL);
+    u.search = ""; u.hash = "";
+    u.pathname = u.pathname.replace(/[^/]*$/, "calendar");
+    return u.toString();
+  }catch(e){ return null; }
+}
+function calendarFeedUrl(token){
+  const base = calendarEndpoint();
+  return base ? base + "?token=" + encodeURIComponent(token) : null;
+}
+/* webcal:// öffnet auf iPhone/iPad/Mac direkt den Abo-Dialog der Kalender-App */
+function calendarWebcalUrl(token){
+  const url = calendarFeedUrl(token);
+  return url ? url.replace(/^https?:\/\//, "webcal://") : null;
+}
+function calendarGoogleUrl(token){
+  const wc = calendarWebcalUrl(token);
+  return wc ? "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(wc) : null;
+}
+function cryptoReady(){
+  return !!(window.crypto && window.crypto.subtle && window.crypto.getRandomValues);
+}
+function newFeedToken(){
+  const bytes = new Uint8Array(32);
+  window.crypto.getRandomValues(bytes);
+  let bin = "";
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+async function sha256Hex(text){
+  const buf = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function relTime(iso){
+  const t = Date.parse(iso || "");
+  if(!Number.isFinite(t)) return null;
+  const min = Math.round((Date.now() - t) / 60000);
+  if(min < 2) return "gerade eben";
+  if(min < 60) return "vor "+min+" Minuten";
+  const h = Math.round(min/60);
+  if(h < 24) return "vor "+h+(h === 1 ? " Stunde" : " Stunden");
+  const d = Math.round(h/24);
+  return "vor "+d+(d === 1 ? " Tag" : " Tagen");
+}
+
+async function renderCalendarSync(){
+  const box = $("calSync");
+  if(!box) return;
+  if(!calendarEndpoint()){
+    box.innerHTML = '<p class="hint">Die Kalender-Synchronisation ist in dieser Installation noch nicht eingerichtet (Backend fehlt).</p>';
+    return;
+  }
+  if(!sb){
+    box.innerHTML = '<p class="hint">Die Kalender-Synchronisation braucht den Cloud-Sync – in dieser Installation ist er nicht konfiguriert.</p>';
+    return;
+  }
+  if(!currentUser){
+    box.innerHTML = '<p class="hint">Damit dein Kalender die Termine automatisch bekommt, brauchst du ein FlowWeek-Konto: Nur dann kann die Kalender-App sie von überall abrufen.</p>'
+      + '<div class="sync-btns"><button class="btn primary" id="calSyncLogin">Anmelden / Konto erstellen</button></div>';
+    $("calSyncLogin").addEventListener("click", ()=>{ closeDrawer(); showAuthMask(); });
+    return;
+  }
+
+  const token = await store.get(CAL_TOKEN_KEY);
+  if(!token || typeof token !== "string"){
+    box.innerHTML = '<p class="hint">Einmal verbinden – fertig. Danach erscheinen deine FlowWeek-Termine automatisch in der Kalender-App von iPhone, iPad, Mac oder Android, und jede Änderung wird von selbst übernommen.</p>'
+      + '<div class="sync-btns"><button class="btn primary" id="calSyncConnect">Mit Kalender verbinden</button></div>';
+    $("calSyncConnect").addEventListener("click", connectCalendar);
+    return;
+  }
+
+  const feedUrl = calendarFeedUrl(token);
+  box.innerHTML =
+      '<div class="sync-state on" id="calSyncState">Verbunden</div>'
+    + '<p class="hint" id="calSyncInfo">Öffne den Link einmal auf jedem Gerät, auf dem du die Termine sehen willst.</p>'
+    + '<div class="sync-btns">'
+    +   '<a class="btn primary" href="'+esc(calendarWebcalUrl(token))+'">In Apple Kalender öffnen</a>'
+    +   '<a class="btn" href="'+esc(calendarGoogleUrl(token))+'" target="_blank" rel="noopener noreferrer">In Google Kalender öffnen</a>'
+    +   '<button class="btn ghost" id="calSyncCopy">Link kopieren</button>'
+    + '</div>'
+    + '<div class="sync-url">'+esc(feedUrl)+'</div>'
+    + '<p class="hint" style="margin-top:8px"><b>Android:</b> Den Google-Link einmal im Browser bestätigen – danach taucht der Kalender automatisch auch in der Kalender-App des Handys auf.</p>'
+    + '<p class="hint" style="margin-top:6px">Die Termine werden nur aus FlowWeek übernommen: Bearbeitet wird weiterhin hier, der Kalender spiegelt es.</p>'
+    + '<p class="hint" style="margin-top:6px">Behandle den Link wie ein Passwort – wer ihn hat, kann deine Termine sehen.</p>'
+    + '<div class="sync-btns"><button class="btn ghost danger" id="calSyncOff">Verbindung trennen</button></div>';
+
+  $("calSyncCopy").addEventListener("click", async ()=>{
+    try{
+      await navigator.clipboard.writeText(feedUrl);
+      toast("Link kopiert ✅");
+    }catch(e){
+      toast("Kopieren nicht möglich – Link bitte manuell markieren.");
+    }
+  });
+  $("calSyncOff").addEventListener("click", disconnectCalendar);
+
+  /* Zusatzinfo: Wann hat die Kalender-App zuletzt abgerufen? Zeigt dem Nutzer,
+     dass der Sync wirklich von allein läuft. */
+  try{
+    const { data, error } = await sb.from("flowweek_calendar_feeds")
+      .select("last_access_at").eq("user_id", currentUser.id).maybeSingle();
+    if(error) throw error;
+    const state = $("calSyncState"), info = $("calSyncInfo");
+    if(!state || !info) return; // Menü wurde inzwischen neu aufgebaut
+    if(!data){
+      state.classList.remove("on");
+      state.textContent = "Nicht mehr verbunden";
+      info.textContent = "Diese Verbindung wurde entfernt. Bitte neu verbinden.";
+      return;
+    }
+    const rel = relTime(data.last_access_at);
+    info.textContent = rel
+      ? "Zuletzt vom Kalender abgerufen: "+rel+". Das läuft von allein weiter."
+      : "Noch kein Abruf – die Kalender-App meldet sich nach dem Abonnieren von selbst. Beim ersten Mal kann das ein paar Minuten dauern.";
+  }catch(e){
+    console.warn("Kalender-Status nicht abrufbar:", e);
+  }
+}
+
+async function connectCalendar(){
+  if(calSyncBusy) return;
+  if(!currentUser || !sb){ toast("Bitte zuerst anmelden."); return; }
+  if(!cryptoReady()){
+    toast("Dieser Browser erlaubt das nur über eine https-Adresse.");
+    return;
+  }
+  const btn = $("calSyncConnect");
+  calSyncBusy = true;
+  if(btn){ btn.disabled = true; btn.textContent = "Verbinde …"; }
+  try{
+    const token = newFeedToken();
+    let tz = "Europe/Berlin";
+    try{ tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; }catch(e){}
+    const { error } = await sb.from("flowweek_calendar_feeds").upsert({
+      user_id: currentUser.id,
+      token_hash: await sha256Hex(token),
+      timezone: tz,
+      created_at: new Date().toISOString(),
+      last_access_at: null
+    }, { onConflict: "user_id" });
+    if(error) throw error;
+    await store.set(CAL_TOKEN_KEY, token);
+    toast("Kalender verbunden ✅");
+  }catch(e){
+    console.error("Kalender-Verbindung fehlgeschlagen:", e);
+    toast("Verbinden hat nicht geklappt. Bitte später erneut versuchen.");
+  }finally{
+    calSyncBusy = false;
+    renderCalendarSync();
+  }
+}
+
+async function disconnectCalendar(){
+  if(calSyncBusy) return;
+  if(!currentUser || !sb) return;
+  const btn = $("calSyncOff");
+  calSyncBusy = true;
+  if(btn){ btn.disabled = true; btn.textContent = "Trenne …"; }
+  try{
+    const { error } = await sb.from("flowweek_calendar_feeds").delete().eq("user_id", currentUser.id);
+    if(error) throw error;
+    /* Leerer String statt null: die Cloud-Spalte ist "not null" */
+    await store.set(CAL_TOKEN_KEY, "");
+    toast("Verbindung getrennt. Der alte Link funktioniert nicht mehr.");
+  }catch(e){
+    console.error("Trennen fehlgeschlagen:", e);
+    toast("Trennen hat nicht geklappt. Bitte später erneut versuchen.");
+  }finally{
+    calSyncBusy = false;
+    renderCalendarSync();
+  }
 }
 
 /* ============================================================
@@ -1805,6 +2104,7 @@ async function loadAllUserData(){
   await loadWeek();
   renderHome();
   renderAccountBar();
+  renderCalendarSync();
   updateAiStatus();
 }
 function updateAiStatus(label){
