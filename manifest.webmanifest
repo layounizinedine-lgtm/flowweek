@@ -1,0 +1,38 @@
+{
+  "name": "FlowWeek – Sprechen. Planen. Besser werden.",
+  "short_name": "FlowWeek",
+  "description": "Stressfreie Wochenplanung: einsprechen, prüfen, abhaken.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "./flowweek.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F4F5F7",
+  "theme_color": "#4763D8",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
